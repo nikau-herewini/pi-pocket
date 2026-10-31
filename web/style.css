@@ -7401,6 +7401,48 @@ div.group-head {
     gap: 0.3rem;
 }
 
+/* On a narrow phone New folder and Clone are their icons, so the path keeps its room. */
+@media (max-width: 479px) {
+    .fp-new-label {
+        display: none;
+    }
+}
+
+/* Clone a repository (`sheets/clone.js`): the address, the folder, then what is under way. */
+.clone-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.clone-target {
+    overflow-wrap: anywhere;
+}
+
+.clone-busy {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.clone-busy > .spinner {
+    flex: none;
+    margin-top: 2px;
+}
+
+.clone-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.clone-buttons .button {
+    gap: 0.35rem;
+}
+
 .fp-crumbs {
     flex: 1;
     min-width: 0;

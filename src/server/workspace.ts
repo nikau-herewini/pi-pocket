@@ -4,7 +4,17 @@
  * operations people call directly check who may do them; the path helpers (`conversationPath`, `conversationFile`,
  * `readableFile`, `uploadDirectory`) leave seeing the conversation to their callers.
  */
-import { lstatSync, mkdirSync, realpathSync, statSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import {
+    existsSync,
+    lstatSync,
+    mkdirSync,
+    readdirSync,
+    realpathSync,
+    renameSync,
+    rmSync,
+    statSync,
+} from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { ConversationId } from "@earendil-works/pi-durable";
@@ -21,9 +31,12 @@ import {
     validBranchName,
 } from "./branches.ts";
 import { type Changes, changesIn, diffOf, editFacts, revertFile } from "./changes.ts";
+import { CLONE_TIMEOUT_MS, cloneRoot, cloneSource, remoteKey, validFolderName } from "./clone.ts";
 import type { User } from "./config.ts";
 import { describe, HttpError } from "./errors.ts";
 import { FileLists, type FileListing, type FileView, viewFile } from "./files.ts";
+import { git } from "./git.ts";
+import { snippet } from "./projection.ts";
 import { displayPath, expandHome } from "./paths.ts";
 import type { ClientEntry } from "./projection.ts";
 
@@ -32,6 +45,8 @@ const EDITS_KEPT = 64;
 
 export class Workspace {
     readonly #app: PocketApp;
+    /** Clones under way, by folder, with the address each clones: two asks for one clone it once. */
+    readonly #cloning = new Map<string, { key: string; done: Promise<string> }>();
 
     constructor(app: PocketApp) {
         this.#app = app;
@@ -245,6 +260,152 @@ export class Workspace {
 
         // Made, or a folder already: either way it must be a folder now.
         return this.checkDirectory(absolute);
+    }
+
+    /** The folder the folder picker clones repositories in. */
+    get cloneDir(): string {
+        return cloneRoot(this.#app.defaultCwd);
+    }
+
+    /**
+     * Clone a repository into the clone folder, for someone who may browse folders, and return the clone's path. The
+     * folder is named for the repository unless `name` says otherwise. A folder already there that is a clone of the
+     * same repository is the answer as it is; any other is a 409. The clone is made in a hidden folder beside its place
+     * and moved there once complete, so one cut off midway is never taken for one.
+     */
+    async cloneRepo(user: User, address: string, name?: string): Promise<string> {
+        this.#app.requireSteer(user);
+
+        if (user.sessions !== undefined) {
+            throw new HttpError(403, "You were invited to one session.");
+        }
+
+        const source = cloneSource(address);
+        const folderName = name?.trim() || source.name;
+
+        if (!validFolderName(folderName)) {
+            throw new HttpError(
+                400,
+                folderName === ""
+                    ? "Name the folder to clone into."
+                    : `${folderName} cannot be a folder's name.`,
+            );
+        }
+
+        const root = this.cloneDir;
+        const target = join(root, folderName);
+        const key = remoteKey(source.url);
+        const under = this.#cloning.get(target);
+
+        if (under !== undefined) {
+            if (under.key !== key) {
+                throw new HttpError(409, `Another repository is being cloned into ${target}.`);
+            }
+
+            return under.done;
+        }
+
+        if (lstatSync(target, { throwIfNoEntry: false }) !== undefined) {
+            if (await this.#isCloneOf(target, key)) {
+                return target;
+            }
+
+            throw new HttpError(
+                409,
+                `${target} is already there and is not a clone of ${address.trim()}: name another folder.`,
+            );
+        }
+
+        const done = this.#clone(root, source.url, folderName, target).finally(() =>
+            this.#cloning.delete(target),
+        );
+
+        this.#cloning.set(target, { key, done });
+
+        return done;
+    }
+
+    /** Whether a folder is the top of a clone whose `origin` is the repository with this key. */
+    async #isCloneOf(folder: string, key: string): Promise<boolean> {
+        try {
+            if (!statSync(folder).isDirectory()) {
+                return false;
+            }
+
+            const top = (await git(folder, ["rev-parse", "--show-toplevel"])).trim();
+
+            if (realpathSync(top) !== realpathSync(folder)) {
+                return false;
+            }
+
+            return remoteKey(await git(folder, ["remote", "get-url", "origin"])) === key;
+        } catch {
+            return false;
+        }
+    }
+
+    async #clone(root: string, url: string, name: string, target: string): Promise<string> {
+        mkdirSync(root, { recursive: true });
+        this.#clearParts(root, name);
+        const part = join(root, `.${name}.cloning-${randomUUID().slice(0, 8)}`);
+
+        try {
+            await git(root, ["-c", "protocol.ext.allow=never", "clone", "--", url, part], {
+                timeoutMs: CLONE_TIMEOUT_MS,
+                env: {
+                    // Nobody is there to type a password: a private repository fails at once.
+                    GIT_TERMINAL_PROMPT: "0",
+                    GIT_SSH_COMMAND: process.env.GIT_SSH_COMMAND ?? "ssh -o BatchMode=yes",
+                },
+            });
+
+            if (existsSync(target)) {
+                throw new HttpError(409, `${target} appeared while cloning: name another folder.`);
+            }
+
+            renameSync(part, target);
+            this.#app.log(`cloned ${url} into ${target}`);
+
+            return target;
+        } catch (error) {
+            rmSync(part, { recursive: true, force: true });
+
+            if (error instanceof HttpError) {
+                throw error;
+            }
+
+            const said = describe(error).trim().split("\n").at(-1) ?? "";
+            // What git says of a repository that is not there, or one it may not read, said as people would.
+            const hidden =
+                /could not read (Username|Password)|Repository not found|Permission denied|Authentication failed|does not appear to be a git repository|not found/i.test(
+                    said,
+                );
+
+            throw new HttpError(
+                502,
+                hidden
+                    ? `Could not clone ${url}: it is not there, or it is private and this machine has no sign-in for it. (${snippet(said, 200)})`
+                    : `Could not clone ${url}: ${snippet(said, 300)}`,
+            );
+        }
+    }
+
+    /** Remove hidden clone folders a restart cut off, once older than a clone may take. */
+    #clearParts(root: string, name: string): void {
+        const prefix = `.${name}.cloning-`;
+        const before = Date.now() - CLONE_TIMEOUT_MS;
+
+        for (const entry of readdirSync(root)) {
+            const part = join(root, entry);
+
+            try {
+                if (entry.startsWith(prefix) && statSync(part).mtimeMs < before) {
+                    rmSync(part, { recursive: true, force: true });
+                }
+            } catch (error) {
+                this.#app.log(`could not remove ${part}: ${describe(error)}`);
+            }
+        }
     }
 
     /** A path as a conversation means it: absolute, `~/…`, or relative to the conversation's working directory. */

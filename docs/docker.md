@@ -72,6 +72,8 @@ Pi's sign-ins live in `./data/pi/agent/auth.json`, not in Pi Pocket's database. 
 
 Provider keys can go in `.env` and the `environment:` block of the Compose file instead. Keys are not written to the image.
 
+The folder picker's **Clone** puts repositories in `/workspace/<name>`, so they land in `PI_POCKET_WORKSPACE` on the host. Set `PI_POCKET_CLONE_DIR` in the `environment:` block to use another folder inside the container.
+
 ## Access and ports
 
 `PI_POCKET_BIND` is the host address the port is published on, and `PI_POCKET_PORT` is the port on both sides (default `8787`). For phones on the same network, leave the default `0.0.0.0` and `PI_POCKET_ACCESS=lan`.

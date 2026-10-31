@@ -11,6 +11,8 @@ export type GitOptions = {
     allowExit?: number[];
     timeoutMs?: number;
     maxBuffer?: number;
+    /** More environment variables for git. */
+    env?: Record<string, string>;
 };
 
 /** A git command that failed, with what git said (or why it did not run) as its message. */
@@ -26,7 +28,7 @@ export class GitError extends Error {
 
 /** Run git in `cwd` and return what it printed. */
 export function git(cwd: string, args: string[], options: GitOptions = {}): Promise<string> {
-    const { allowExit = [], timeoutMs = 60_000, maxBuffer = 16 * 1024 * 1024 } = options;
+    const { allowExit = [], timeoutMs = 60_000, maxBuffer = 16 * 1024 * 1024, env = {} } = options;
 
     return new Promise((resolve, reject) => {
         execFile(
@@ -41,6 +43,7 @@ export function git(cwd: string, args: string[], options: GitOptions = {}): Prom
                     GIT_LITERAL_PATHSPECS: "1",
                     GIT_OPTIONAL_LOCKS: "0",
                     LC_ALL: "C",
+                    ...env,
                 },
             },
             (error, stdout, stderr) => {

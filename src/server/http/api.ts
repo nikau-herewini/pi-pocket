@@ -587,6 +587,23 @@ export function createApi(options: HttpOptions, auth: Auth) {
             return json(response, 200, { path: app.workspace.makeFolder(user, body.path) });
         }
 
+        // A repository cloned from the folder picker, into the clone folder: a session starts there next.
+        if (first === "clone" && second === undefined && method === "POST") {
+            const body = await readJson<{ url?: unknown; name?: unknown }>(request);
+
+            if (typeof body.url !== "string") {
+                throw new HttpError(400, "Give the repository's address.");
+            }
+
+            if (body.name !== undefined && typeof body.name !== "string") {
+                throw new HttpError(400, "The folder's name must be text.");
+            }
+
+            return json(response, 200, {
+                path: await app.workspace.cloneRepo(user, body.url, body.name),
+            });
+        }
+
         if (first === "settings" && method === "POST") {
             const body = await readJson<{
                 approvalRule?: unknown;

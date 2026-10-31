@@ -266,6 +266,8 @@ export function CwdSheet({ mode, fromList = false }) {
     };
 
     const mayStar = canSteer() && !scoped();
+    // Cloning makes a folder, as New folder does: for who may browse folders.
+    const mayClone = mayStar;
     const starred = target !== null && favorites.includes(target);
 
     /** Star or unstar a folder. The list changes when the server says it did, on every device. */
@@ -495,14 +497,30 @@ export function CwdSheet({ mode, fromList = false }) {
             <button
                 type="button"
                 class="button small fp-new"
+                aria-label="New folder"
                 disabled=${folder === null}
                 onClick=${() => {
                     setEditing(null);
                     setNaming(true);
                 }}
             >
-                <${Icon} name="plus" size=${14} /> New folder
+                <${Icon} name="plus" size=${14} />
+                <span class="fp-new-label">New folder</span>
             </button>
+            ${
+                !changing &&
+                mayClone &&
+                html`<button
+                    type="button"
+                    class="button small fp-new"
+                    title="Clone a repository and start a session in it"
+                    aria-label="Clone a repository"
+                    onClick=${() => openSheet({ type: "clone", fromList, worktree })}
+                >
+                    <${Icon} name="download" size=${14} />
+                    <span class="fp-new-label">Clone</span>
+                </button>`
+            }
         </div>
         ${
             missing !== null &&
