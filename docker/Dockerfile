@@ -2,10 +2,20 @@
 #
 # Pi Pocket in a container. The app runs straight from its source (Node strips the
 # TypeScript), so this image only installs the runtime packages and the tools Pi's
-# built-in extensions use: git, GitHub's gh, ripgrep, fd, Chromium, and cloudflared.
+# built-in extensions use, plus Forgejo's fj: git, gh, ripgrep, fd, Chromium,
+# cloudflared, and fj.
 #
 # Build from the repository root:
 #   docker build -f docker/Dockerfile -t pi-pocket .
+
+# Build the pinned Forgejo client against the same glibc as the runtime.
+# This stage follows the target platform for native amd64 and arm64 CI builds.
+FROM rust:1.94.0-bookworm AS forgejo-cli
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl pkg-config libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+COPY docker/install-fj.sh /tmp/install-fj.sh
+RUN sh /tmp/install-fj.sh
 
 FROM node:24-bookworm-slim AS deps
 
@@ -34,6 +44,7 @@ RUN apt-get update \
         git \
         jq \
         less \
+        libssl3 \
         openssh-client \
         procps \
         ripgrep \
@@ -56,6 +67,11 @@ RUN set -eux; \
         "https://github.com/cloudflare/cloudflared/releases/${CLOUDFLARED_VERSION}/download/cloudflared-linux-${cloudflared_arch}"; \
     chmod 0755 /usr/local/bin/cloudflared; \
     /usr/local/bin/cloudflared --version
+
+# Forgejo's client works alongside Git. Authentication is deployment-owned;
+# never put tokens into image layers or build arguments.
+COPY --from=forgejo-cli /out/fj /usr/local/bin/fj
+RUN fj version
 
 # The app: source, web app, docs it tells Pi about, and types for drop-ins.
 WORKDIR /app

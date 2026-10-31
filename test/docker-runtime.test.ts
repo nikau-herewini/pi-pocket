@@ -34,6 +34,32 @@ test("the runtime image includes the app but not the development test suite", ()
     assert.match(dockerfile, /ENTRYPOINT .*tini/);
 });
 
+test("the Forgejo client builds pinned source against the runtime's Debian release", () => {
+    const installer = source("docker/install-fj.sh");
+    const dockerfile = source("docker/Dockerfile");
+
+    assert.match(installer, /forgejo-cli v0\.7\.0/);
+    assert.match(installer, /commit=d014eb8ed5ff8b5793e135f2b4b99a5fb5793c2b/);
+    assert.equal([...installer.matchAll(/checksum=[a-f0-9]{64}/g)].length, 1);
+    assert.match(installer, /cargo build --release --locked/);
+    assert.match(dockerfile, /FROM rust:1\.94\.0-bookworm AS forgejo-cli/);
+    assert.match(dockerfile, /COPY --from=forgejo-cli \/out\/fj \/usr\/local\/bin\/fj/);
+    assert.match(dockerfile, /RUN fj version/);
+    assert.ok(installer.indexOf("sha256sum --check") < installer.indexOf("tar -xzf"));
+    assert.match(installer, /install -D -m 0755/);
+    assert.match(installer, /\/out\/fj version/);
+    assert.match(dockerfile, /RUN sh \/tmp\/install-fj\.sh/);
+    assert.match(
+        source(".github/workflows/docker-check.yml"),
+        /--user 1000:1000 pi-pocket-smoke fj version/,
+    );
+    assert.doesNotMatch(dockerfile, /ARG .*TOKEN|ENV .*TOKEN/);
+
+    const syntax = spawnSync("sh", ["-n"], { input: installer, encoding: "utf8" });
+
+    assert.equal(syntax.status, 0, syntax.stderr);
+});
+
 test("Docker guide shell examples have valid syntax", () => {
     const examples = [...source("docs/docker.md").matchAll(/```bash\n([\s\S]*?)```/g)];
 

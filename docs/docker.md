@@ -1,6 +1,29 @@
 # Running Pi Pocket in Docker
 
-Pi Pocket runs from its source with Node.js, so the container is thin: Node, Chromium for the Browser panel, and the command-line tools the built-in extensions use (`git`, `gh`, `ripgrep`, `fd`, and `cloudflared`).
+Pi Pocket runs from its source with Node.js, so the container is thin: Node, Chromium for the Browser panel, and the command-line tools the built-in extensions use (`git`, `gh`, `fj`, `ripgrep`, `fd`, and `cloudflared`).
+
+The image includes [`forgejo-cli`](https://codeberg.org/forgejo-contrib/forgejo-cli)
+v0.7.0 as `fj` for Forgejo pull requests, issues, and repository operations alongside
+Git. A separate Rust build stage compiles it for amd64 and arm64 against Debian
+Bookworm, because the official prebuilt binaries need a newer glibc. The build
+verifies the pinned source archive's SHA-256, uses `cargo build --locked`, and runs
+`fj version` in both the builder and runtime images. No Rust toolchain enters the
+runtime image. To update it, review the release and change the source commit and
+hash in `docker/install-fj.sh` together; review the pinned Rust toolchain too.
+
+Forgejo authentication belongs to the deployment, not the image. Use `fj --help`
+and `fj --host <host> auth add-token` for an explicit host; without a token argument,
+the latter reads the token from stdin. Never put a token in command arguments or
+build settings. The CLI does not automatically reuse Git's credential helper.
+On Linux its credential file is
+`${XDG_DATA_HOME:-$HOME/.local/share}/forgejo-cli/keys.json`; protect it and any
+backups as secrets. Fresh sessions only know to use `fj` if their global or project
+`AGENTS.md` documents it ([customizing](customizing.md#agentsmd-rules-for-a-project-or-for-all-sessions)).
+
+In v0.7.0, `fj pr merge` does not enable auto-merge; use the Forgejo API for that.
+`fj pr status --wait` is useful for inspection but its exit status is not a reliable
+required-check gate. This installation does not add Forgejo support to Pi Pocket's
+GitHub-specific PR watch or repository watch tools.
 
 Docker is the only supported deployment runtime for this fork. [`docker-compose.yml`](../docker-compose.yml) runs the published image by default; [`docker/Dockerfile`](../docker/Dockerfile) can build a custom image from the repository root. Host Node.js, npm, Nix, native systemd, Android, and other container engines are not supported deployment paths. Source checkouts remain useful for development and tests.
 
