@@ -79,6 +79,7 @@ export function CloneSheet({ fromList = false, worktree: worktreeAtFirst = false
     const [worktree, setWorktree] = useState(job?.worktree ?? worktreeAtFirst);
     const input = useRef(null);
     const folder = named ? name.trim() : repoName(url);
+    const where = shortPath(`${root.replace(/\/+$/, "")}/${folder || "…"}`, server?.home);
     const ready = url.trim() !== "" && folder !== "" && !/[/\\]/.test(folder) && !busy;
 
     useEffect(() => {
@@ -144,10 +145,7 @@ export function CloneSheet({ fromList = false, worktree: worktreeAtFirst = false
                     }}
                 />
                 <div class="muted small clone-target">
-                    Clones into
-                    <span class="mono">
-                        ${shortPath(`${root.replace(/\/+$/, "")}/${folder || "…"}`, server?.home)}
-                    </span>
+                    Clones into <span class="mono">${where}</span>
                 </div>
             </div>
             <label class="check" title="The session gets a branch of its own, apart from the clone">
