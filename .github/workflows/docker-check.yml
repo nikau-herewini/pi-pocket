@@ -1,0 +1,101 @@
+name: Docker runtime
+
+on:
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: docker-check-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    smoke:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - runner: ubuntu-latest
+                      platform: linux/amd64
+                      arch: amd64
+                    - runner: ubuntu-24.04-arm
+                      platform: linux/arm64
+                      arch: arm64
+        runs-on: ${{ matrix.runner }}
+        timeout-minutes: 30
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Validate Compose configuration
+              run: docker compose config --quiet
+
+            - uses: docker/setup-buildx-action@v3
+
+            - name: Build the runtime image without publishing
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: docker/Dockerfile
+                  platforms: ${{ matrix.platform }}
+                  load: true
+                  tags: pi-pocket:smoke
+                  cache-from: type=gha,scope=docker-check-${{ matrix.arch }}
+                  cache-to: type=gha,mode=max,scope=docker-check-${{ matrix.arch }}
+
+            - name: Check health, browser startup, persistent data, and shutdown
+              run: |
+                  set -euo pipefail
+                  state="$RUNNER_TEMP/pi-pocket-smoke"
+                  mkdir -p "$state/data" "$state/pi" "$state/workspace"
+                  start_and_wait() {
+                      docker run --detach --name pi-pocket-smoke \
+                          --security-opt no-new-privileges:true \
+                          --mount "type=bind,source=$state/data,target=/data" \
+                          --mount "type=bind,source=$state/pi,target=/home/node/.pi" \
+                          --mount "type=bind,source=$state/workspace,target=/workspace" \
+                          --env PI_OFFLINE=1 \
+                          --health-interval=2s --health-start-period=5s \
+                          --health-retries=30 pi-pocket:smoke
+                      for attempt in $(seq 1 60); do
+                          if [ "$(docker inspect --format '{{.State.Health.Status}}' pi-pocket-smoke)" = healthy ]; then
+                              return 0
+                          fi
+                          if [ "$(docker inspect --format '{{.State.Running}}' pi-pocket-smoke)" != true ]; then
+                              echo 'Container exited before becoming healthy'
+                              return 1
+                          fi
+                          sleep 2
+                      done
+                      echo 'Container did not become healthy'
+                      return 1
+                  }
+                  stop_and_check() {
+                      docker stop --time 30 pi-pocket-smoke
+                      exit_code="$(docker inspect --format '{{.State.ExitCode}}' pi-pocket-smoke)"
+                      # SIGTERM can be 143; 137 would mean Docker had to kill it.
+                      test "$exit_code" = 0 || test "$exit_code" = 143
+                  }
+                  start_and_wait
+                  docker exec pi-pocket-smoke node -e \
+                      "require('node:fs').writeFileSync('/data/docker-smoke-marker', 'persisted')"
+                  timeout 30s docker exec pi-pocket-smoke chromium \
+                      --headless --no-sandbox --disable-dev-shm-usage \
+                      --user-data-dir=/tmp/ci-chromium --dump-dom about:blank
+                  stop_and_check
+                  docker rm pi-pocket-smoke
+                  start_and_wait
+                  docker exec pi-pocket-smoke node -e \
+                      "require('node:assert/strict').equal(require('node:fs').readFileSync('/data/docker-smoke-marker', 'utf8'), 'persisted')"
+                  stop_and_check
+
+            - name: Show container logs on failure
+              if: failure()
+              run: docker logs pi-pocket-smoke || true
+
+            - name: Remove the test container
+              if: always()
+              run: docker rm --force pi-pocket-smoke || true

@@ -23,9 +23,6 @@
     "bugs": {
         "url": "https://github.com/nikau-herewini/pi-pocket/issues"
     },
-    "bin": {
-        "pi-pocket": "bin/pi-pocket.js"
-    },
     "engines": {
         "node": ">=22.19"
     },

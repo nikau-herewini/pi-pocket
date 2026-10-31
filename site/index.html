@@ -6,7 +6,7 @@
         <title>Pi Pocket: use the Pi coding agent from your phone or any browser</title>
         <meta
             name="description"
-            content="A self-hosted web app for the Pi coding agent. Use it from your phone or any browser, share sessions with other people, and let PiP, its assistant, look after your other sessions. Runs continue after a restart. Built on Pi Durable."
+            content="A Docker-hosted web app for the Pi coding agent. Use it from your phone or any browser, share sessions with other people, and let PiP look after your other sessions. Runs continue after a restart. Built on Pi Durable."
         />
         <meta name="theme-color" content="#111219" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f7f8fb" media="(prefers-color-scheme: light)" />
@@ -23,7 +23,7 @@
         />
         <meta
             property="og:description"
-            content="A self-hosted web app for the Pi coding agent: shared sessions, an assistant for your other sessions, and runs that continue after a restart. Built on Pi Durable."
+            content="A Docker-hosted web app for the Pi coding agent: shared sessions, an assistant for your other sessions, and runs that continue after a restart. Built on Pi Durable."
         />
         <meta property="og:url" content="https://nikau-herewini.github.io/pi-pocket/" />
         <meta property="og:image" content="https://nikau-herewini.github.io/pi-pocket/og.png" />
@@ -70,13 +70,13 @@
                 <div class="wrap">
                     <div>
                         <a class="badge" href="https://earendil.com/posts/pi-durable/"
-                            ><b>v0.27.0</b>Built on Pi Durable →</a
+                            ><b>Rolling main</b>Built on Pi Durable →</a
                         >
                         <h1>Pi, on your phone.<br /><span class="grad">And any browser.</span></h1>
                         <p class="lead">
-                            Pi Pocket is a self-hosted web app for the Pi coding agent. Start a run
-                            from anywhere, share it with the people you work with, and let it keep
-                            going when the server restarts.
+                            Pi Pocket is a Docker-hosted web app for the Pi coding agent. Start a
+                            run from anywhere, share it with the people you work with, and let it
+                            keep going when the server restarts.
                         </p>
                         <div class="cta">
                             <a class="btn btn-primary" href="#get-started">Get started</a>
@@ -102,7 +102,7 @@
                             <span>Self-hosted</span>
                             <span>Uses Pi's sign-ins</span>
                             <span>Rolling main · no versioned releases</span>
-                            <span>Runs on Android</span>
+                            <span>Docker runtime · phone-friendly browser</span>
                             <span>MIT license</span>
                         </div>
                     </div>
@@ -618,11 +618,11 @@
                                     <path d="m13 3-9 11h7l-1 7 9-11h-7z" />
                                 </svg>
                             </div>
-                            <h3>Ask Pi to change Pi Pocket</h3>
+                            <h3>Make Pi Pocket your own</h3>
                             <p>
-                                There is no build step. Web files reload every open browser,
-                                extensions reinstall while the server runs, and running work resumes
-                                after a restart. Pi knows where the docs are.
+                                Add mounted extensions and themes without rebuilding the image.
+                                Develop and test core changes in a separate source checkout, then
+                                deploy a new image. Pi knows where the docs are.
                             </p>
                         </article>
                         <article class="card reveal">
@@ -940,8 +940,9 @@
                         <span class="kicker">Security</span>
                         <h2>You decide who can make Pi act.</h2>
                         <p>
-                            Pi runs commands on your machine as you. Pi Pocket controls who can ask
-                            it to, and which calls wait for a person.
+                            Pi runs commands as the container's user, with access to mounted files
+                            and credentials. Pi Pocket controls who can ask it to, and which calls
+                            wait for a person.
                         </p>
                         <ul class="points">
                             <li>
@@ -1016,15 +1017,17 @@
                         <span class="kicker">Access</span>
                         <h2>Four ways to connect.</h2>
                         <p>
-                            The launcher asks how your devices connect, then shows a sign-in link
-                            and a QR code for your phone.
+                            Configure access in the container's environment. Read the owner's
+                            sign-in link from its logs, and keep that link private.
                         </p>
                     </div>
                     <div class="access">
                         <div class="mode reveal">
                             <code>local</code>
                             <h3>This device</h3>
-                            <p>127.0.0.1, behind a tunnel of your own.</p>
+                            <p>
+                                Bind the published host port to 127.0.0.1; keep lan inside Docker.
+                            </p>
                         </div>
                         <div class="mode reveal">
                             <code>lan</code>
@@ -1039,12 +1042,17 @@
                         <div class="mode reveal">
                             <code>tailscale</code>
                             <h3>Tailscale</h3>
-                            <p>Only devices on your tailnet, encrypted by Tailscale.</p>
+                            <p>
+                                Run Tailscale on the host and route it to the published container
+                                port.
+                            </p>
                         </div>
                     </div>
                     <p class="note">
-                        Push notifications and dictation need https. Pi Pocket also runs on Android:
-                        install it in Termux and keep everything on the phone.
+                        Push notifications and dictation need https. Android and iPhone browsers
+                        connect to the Docker deployment; running the server on a phone is not
+                        supported. See the
+                        <a href="docs/docker/#access-and-ports">Docker access guide</a>.
                     </p>
                 </div>
             </section>
@@ -1054,24 +1062,25 @@
                 <div class="wrap start">
                     <div class="reveal">
                         <span class="kicker">Get started</span>
-                        <h2>Run it yourself.</h2>
+                        <h2>Deploy with Docker.</h2>
                         <ol class="steps">
                             <li>
                                 <span
-                                    ><b>Sign in with Pi</b>Run <code>pi</code> and use
-                                    <code>/login</code>, or sign in later from the app.</span
+                                    ><b>Get the configuration</b>Install Docker with Compose, then
+                                    get the repository's Compose file and review its persistent
+                                    mounts.</span
                                 >
                             </li>
                             <li>
                                 <span
-                                    ><b>Start the launcher</b>Choose how your devices connect. Your
-                                    choice is remembered.</span
+                                    ><b>Pull and start</b>Use the published GHCR image. No host
+                                    Node.js or npm installation is required.</span
                                 >
                             </li>
                             <li>
                                 <span
-                                    ><b>Scan the QR code</b>Your phone stays signed in for a year.
-                                    Add it to your home screen.</span
+                                    ><b>Open the sign-in link</b>Read the logs and use the host's
+                                    address. Sign in to a provider from the app.</span
                                 >
                             </li>
                             <li>
@@ -1084,58 +1093,75 @@
                     </div>
                     <div class="term reveal">
                         <div class="term-tabs">
-                            <div class="term-tablist" role="tablist" aria-label="Platform">
+                            <div
+                                class="term-tablist"
+                                role="tablist"
+                                aria-label="Deployment commands"
+                            >
                                 <button
                                     type="button"
                                     role="tab"
-                                    id="tab-desktop"
+                                    id="tab-docker"
                                     aria-selected="true"
-                                    aria-controls="cmd-desktop"
+                                    aria-controls="cmd-docker"
                                 >
-                                    macOS &amp; Linux
+                                    Docker Compose
                                 </button>
                                 <button
                                     type="button"
                                     role="tab"
-                                    id="tab-android"
+                                    id="tab-update"
                                     aria-selected="false"
-                                    aria-controls="cmd-android"
+                                    aria-controls="cmd-update"
                                     tabindex="-1"
                                 >
-                                    Android (Termux)
+                                    Update container
                                 </button>
                             </div>
                             <button class="copy" type="button" data-copy-active>Copy</button>
                         </div>
                         <pre
-                            id="cmd-desktop"
+                            id="cmd-docker"
                             role="tabpanel"
-                            aria-labelledby="tab-desktop"
+                            aria-labelledby="tab-docker"
                             tabindex="0"
-                        ><span class="c"># Requires Node.js 22.19 or newer</span>
+                        ><span class="c"># Download configuration; run the published image</span>
 <span class="p">$ </span>git clone https://github.com/nikau-herewini/pi-pocket.git
 <span class="p">$ </span>cd pi-pocket
-<span class="p">$ </span>npm ci
-<span class="p">$ </span>npm start
-<span class="c"># Rolling fork: identify builds by commit SHA</span></pre>
+<span class="p">$ </span>cp .env.example .env
+<span class="c"># Review .env: persistent folders and access settings</span>
+<span class="p">$ </span>docker compose pull
+<span class="p">$ </span>docker compose up -d --no-build
+<span class="p">$ </span>docker compose logs pi-pocket</pre>
                         <pre
-                            id="cmd-android"
+                            id="cmd-update"
                             role="tabpanel"
-                            aria-labelledby="tab-android"
+                            aria-labelledby="tab-update"
                             tabindex="0"
                             hidden
-                        ><span class="p">$ </span>pkg update &amp;&amp; pkg upgrade
-<span class="p">$ </span>pkg install nodejs git
-<span class="p">$ </span>npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-<span class="p">$ </span>pi   <span class="c"># /login, then quit</span>
-<span class="p">$ </span>git clone https://github.com/nikau-herewini/pi-pocket.git
-<span class="p">$ </span>cd pi-pocket &amp;&amp; npm install --ignore-scripts
-<span class="p">$ </span>termux-wake-lock &amp;&amp; npm start</pre>
+                        ><span class="c"># Record the current digest and review migration notes</span>
+<span class="p">$ </span>docker compose stop
+<span class="c"># Back up all persistent folders before continuing</span>
+<span class="c"># Change PI_POCKET_IMAGE first if the image is pinned</span>
+<span class="p">$ </span>docker compose pull
+<span class="p">$ </span>docker compose up -d --no-build --force-recreate</pre>
                         <div class="term-foot">
-                            While the launcher runs: <kbd>q</kbd> quits, <kbd>r</kbd> restarts the
-                            server, <kbd>a</kbd> changes access, <kbd>o</kbd> opens a browser, and
-                            <kbd>s</kbd> shows the QR code. More in the
-                            <a href="https://github.com/nikau-herewini/pi-pocket#readme">README</a>.
+                            Docker is the only supported deployment runtime. The default image is
+                            <code>ghcr.io/nikau-herewini/pi-pocket:latest</code>. Set
+                            <code>PI_POCKET_IMAGE</code> to
+                            <code style="overflow-wrap: anywhere"
+                                >ghcr.io/nikau-herewini/pi-pocket:sha-&lt;full-commit-sha&gt;</code
+                            >
+                            to select a source commit, or
+                            <code style="overflow-wrap: anywhere"
+                                >ghcr.io/nikau-herewini/pi-pocket@sha256:&lt;digest&gt;</code
+                            >
+                            for an immutable image. Tags can change after a rebuild. In-app image
+                            updates are unavailable because updates replace containers. Pull and
+                            recreate the container. Source checkouts and local image builds are for
+                            development and testing only. See the
+                            <a href="docs/docker/">Docker guide</a> and
+                            <a href="docs/releases/">rolling pull-request policy</a>.
                         </div>
                     </div>
                 </div>
@@ -1148,7 +1174,13 @@
                     <a class="logo" href="#top"
                         ><img src="icon.svg" alt="" width="26" height="26" />Pi Pocket</a
                     >
-                    <small>A self-hosted web app for Pi.</small>
+                    <small>A Docker-hosted web app for Pi.</small>
+                    <small
+                        >A fork of
+                        <a href="https://github.com/tannermidd/pi-pocket"
+                            >Tanner Middleton's Pi Pocket</a
+                        >. Changes reach main only through pull requests.</small
+                    >
                     <small
                         >Inspired by
                         <a href="https://x.com/badlogicgames/status/2106452296087302173"

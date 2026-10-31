@@ -6,7 +6,7 @@
  * Edit freely: saving this file reloads it into the running server.
  */
 import { statSync } from "node:fs";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { getDocsPath, loadProjectContextFiles, type Skill } from "@earendil-works/pi-coding-agent";
 import { defineExtension, type PromptInput, section } from "@earendil-works/pi-durable";
 import { APP_ROOT } from "../config.ts";
@@ -32,7 +32,7 @@ function docs(dataDir: string): string {
     const folder = join(code, "docs");
 
     return `Pi Pocket's docs, only for questions about Pi Pocket itself (how it works, changing how you behave in it, extending it, changing its code): start at ${join(folder, "index.md")}, an index (follow only the links your task needs), and read a doc completely before changing anything.
-- Code: ${code}${code.split(sep).includes("node_modules") ? " (an npm install: read it, never edit it, since the next npm update replaces it; to change Pi Pocket, clone https://github.com/TannerMidd/pi-pocket and run that)" : ""}. Data: ${dataDir}; change it through the app, never by editing its files, except extensions/ (drop-ins) and themes/.
+- Code: ${code}. Docker is the only deployment runtime. Make permanent source changes in a development checkout of https://github.com/nikau-herewini/pi-pocket, then test and build a new image. Edits inside the running image disappear when the container is recreated. Data: ${dataDir}; change it through the app, never by editing its files, except extensions/ (drop-ins) and themes/.
 - Pi's own docs (skills, prompt templates, models, providers, settings): ${getDocsPath()}`;
 }
 

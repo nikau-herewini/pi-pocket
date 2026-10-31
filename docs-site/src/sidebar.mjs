@@ -5,7 +5,9 @@ export const SIDEBAR = [
     {
         label: "Getting started",
         items: [
-            ["docs/extensions.md", "Overview"],
+            ["docs/docker.md", "Docker deployment (supported)"],
+            ["docs/releases.md", "Rolling fork and container updates"],
+            ["docs/extensions.md", "Extensions overview"],
             ["docs/extensions/first-extension.md", "Your first extension"],
             ["docs/customizing.md", "Changes without code"],
         ],
@@ -68,13 +70,11 @@ export const SIDEBAR = [
         items: [
             ["docs/index.md", "Documentation map"],
             ["CONTRIBUTING.md", "Contributing"],
-            ["docs/docker.md", "Docker and Podman"],
-            ["docs/systemd.md", "systemd service"],
-            ["docs/self-editing.md", "Changing the code"],
+            ["docs/systemd.md", "Legacy systemd (unsupported)"],
+            ["docs/self-editing.md", "Development and testing"],
             ["docs/map.md", "Project map"],
             ["docs/architecture.md", "Architecture"],
             ["docs/features.md", "Features"],
-            ["docs/releases.md", "Rolling fork policy"],
             ["docs/release-notes.md", "Release notes"],
         ],
     },

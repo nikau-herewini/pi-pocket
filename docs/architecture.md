@@ -29,7 +29,7 @@ Some state lives in this process alone, and a restart forgets it. For example:
 **Its parts:**
 
 - `commands`, `extensionCommands`, `collab`, `alerts`, `providers`, `schedules`, `background`, `goals`, `shell`, `spend`
-- `workspace`, `transcripts`, `attribution`, `piSessions`, `pip`, `watches`, `hooks`, `memory`, `gallery`, `updates`
+- `workspace`, `transcripts`, `attribution`, `piSessions`, `pip`, `watches`, `hooks`, `memory`, `gallery`
 - `browsers`, `linkedSessions`
 
 **What stays on `PocketApp`** (the parts call these rather than keeping copies):
@@ -287,16 +287,7 @@ What a browser shows is its person's choice of theme (`look`) and colors (`theme
 
 ## Updates of Pi Pocket itself
 
-**Fork policy:** The implementation below is inherited from upstream and discovers versioned releases, not rolling commits. It is not this fork's update mechanism. Update source checkouts or containers manually as [releases.md](releases.md) describes.
-
-`Updates` (`updates.ts`, `app.updates`) works out `installKind` from where the server's files are: a git checkout (`git`), the global package folder of the Node.js that runs it, as `npm root -g` gives it (`npm-global`), another `node_modules` folder (`npm-local`), the npx cache (`npx`), or none of these (`unknown`; `npm-install.ts` does the npm kinds). Every kind shares one status (`UpdateStatus`), one set of checks (the launcher runs the server, no sessions busy, the warning tick), the two settings of the `updates` extension, and the outcome format in `update-state.ts`. What differs is where the newest version comes from and how it goes in:
-
-- **The newest version.** An npm kind reads the registry's `latest` tag, and takes the notes, link, and date from the GitHub release of that version; if GitHub does not answer, the version stands without notes and is treated as one with a warning. A git checkout reads GitHub's newest release, or the version tags.
-- **Git.** The release's commit is fetched under `refs/pocket-update/target`, packages install in `.pocket-update/staging/`, and the branch moves forward.
-- **Global npm.** Only when the server's user can write the package and its parent folder, and the launcher advertises `PI_POCKET_NPM_ROLLBACK=1`. The new version installs through `npm-update.ts` in a separate global prefix under the sibling `.pi-pocket-update/staging/`. `update-state.ts` swaps the whole package, keeping the old one in `previous/`. The sibling folder also holds `pending.json` and `last.json`, so replacing the package does not replace recovery state. Before each server spawn, the launcher repairs a missing live folder from the pending update's copies; the server also checks before loading app modules. The launcher swaps the kept copy back when the server does not start; this needs no network. A successful start removes `previous/`. An older launcher requires a full quit and start before npm updates become available.
-- **Local npm and npx.** Nothing in the app can change these. Their status has a blocker with the command to run (`npm install pi-pocket@latest`, or `npx pi-pocket@latest`).
-
-A release with a warning (or notes that could not be read) is never installed by itself and is not rolled back by itself, whatever the kind. The browser module (`extensions/updates/index.js`) only shows `installKind` in words and the blockers the server gives: it holds no rule of its own.
+Docker image replacement is the only deployment update path for this fork. The server has no self-updater, update routes, update settings, release polling, or browser update module. The launcher keeps process restarts (exit code 75, signals, and crash retries), but does not change application files, repair npm packages, or roll back a deployment. Replace a failed image with a known working image through Docker; see [docker.md](docker.md). Extension and theme gallery updates are separate and remain available.
 
 ## Checking a change
 

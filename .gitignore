@@ -1,7 +1,8 @@
 node_modules/
-# What an update from the app keeps while it works (src/server/update-state.ts).
-/.pocket-update/
 *.log
+# Local crash dumps from development tools are not source files.
+/core
+/core.*
 .env
 .env.*
 !.env.example

@@ -1,11 +1,10 @@
-// The Updates module's routes and browser module: on by default, and the owner's alone.
+// Docker image replacement is the only Pi Pocket update path; no self-updater is loaded or served.
 import { cleanUp, openApp, root, scriptedModel } from "./helpers.ts";
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import { createHandler } from "../src/server/http.ts";
-import { pocketVersion } from "../src/server/versions.ts";
 
 let app: Awaited<ReturnType<typeof openApp>>;
 let server: Server;
@@ -44,61 +43,33 @@ const call = async (who: string, path: string, body?: unknown, method?: string) 
     return { status: response.status, data: (await response.json().catch(() => null)) as never };
 };
 
-test("the owner reads the running version, and nobody else reaches the routes or the browser module", async () => {
-    assert.ok(app.loader.extensionNames().includes("pocket-updates"), "on by default");
+test("the self-updater extension, routes, settings, and browser module are unavailable", async () => {
+    assert.ok(!app.loader.extensionNames().includes("pocket-updates"));
+    assert.ok(!app.loader.list().some((each) => each.file === "updates.ts"));
+    assert.ok(!("updates" in app));
 
-    const status = await call("owner", "/api/x/updates/status");
+    for (const who of ["owner", "guest"]) {
+        assert.equal((await call(who, "/api/x/updates/status")).status, 404);
+        assert.equal((await call(who, "/api/x/updates/check", {})).status, 404);
+        assert.equal((await call(who, "/api/x/updates/apply", {})).status, 404);
+        assert.equal((await call(who, "/api/extension-settings/updates")).status, 404);
+        assert.equal((await call(who, "/x/updates/old/index.js")).status, 404);
+        assert.equal((await call(who, "/x/updates/old/style.css")).status, 404);
 
-    assert.equal(status.status, 200);
-    assert.equal((status.data as { version: string }).version, pocketVersion());
-    assert.equal((status.data as { available: boolean }).available, false, "nothing checked yet");
-    assert.equal((status.data as { supervised: boolean }).supervised, false);
+        const hello = (await call(who, "/api/me")).data as {
+            server: { ui: { module: string }[] };
+        };
 
-    assert.equal((await call("guest", "/api/x/updates/status")).status, 404);
-    assert.equal((await call("guest", "/api/x/updates/apply", {})).status, 404);
-
-    const ui = async (who: string) =>
-        (
-            (await call(who, "/api/me")).data as { server: { ui: { module: string }[] } }
-        ).server.ui.map((each) => each.module);
-
-    assert.ok((await ui("owner")).includes("updates"));
-    assert.ok(!(await ui("guest")).includes("updates"));
-});
-
-test("Beta updates is an owner setting, off by default, that turns the beta channel on and off", async () => {
-    const settings = await call("owner", "/api/extension-settings/updates");
-
-    assert.equal(settings.status, 200);
-    assert.equal(
-        (settings.data as { fields: { name: string }[] }).fields.some(
-            (each) => each.name === "beta",
-        ),
-        true,
-    );
-    assert.equal((settings.data as { values: { beta: boolean } }).values.beta, false);
-    assert.equal(app.updates.beta, false);
-    assert.equal(
-        ((await call("owner", "/api/x/updates/status")).data as { beta: boolean }).beta,
-        false,
-    );
+        assert.ok(!hello.server.ui.some((each) => each.module === "updates"));
+    }
 
     assert.equal(
-        (await call("guest", "/api/extension-settings/updates", { beta: true }, "PUT")).status,
-        403,
+        (await call("owner", "/api/extension-settings/updates", { check: true }, "PUT")).status,
+        404,
     );
-    assert.equal(app.updates.beta, false, "only the owner changes it");
-
     assert.equal(
-        (await call("owner", "/api/extension-settings/updates", { beta: true }, "PUT")).status,
-        200,
+        (await call("owner", "/api/extensions/updates.ts", { enabled: true })).status,
+        404,
+        "the removed updater cannot be enabled again",
     );
-    assert.equal(app.updates.beta, true);
-    assert.equal(
-        ((await call("owner", "/api/x/updates/status")).data as { beta: boolean }).beta,
-        true,
-    );
-
-    await call("owner", "/api/extension-settings/updates", { beta: null, check: null }, "PUT");
-    assert.equal(app.updates.beta, false, "the default puts it back off");
 });

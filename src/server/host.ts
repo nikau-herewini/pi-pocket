@@ -20,7 +20,6 @@ import type { Pip } from "./pip.ts";
 import type { PipCompaction } from "./pip-compact.ts";
 import type { Schedules } from "./schedules.ts";
 import type { BackgroundTasks } from "./background.ts";
-import type { Updates } from "./updates.ts";
 import type { RepoWatches } from "./repo-watches.ts";
 import type { Watches } from "./watches.ts";
 import type { FetchPublic } from "./public-fetch.ts";
@@ -533,11 +532,6 @@ export interface PocketHost {
         | "share"
         | "shareTheme"
         | "reach"
-    >;
-    /** Updates of Pi Pocket itself (`updates.ts`): its extension's routes are the owner's way to them. */
-    readonly updates: Pick<
-        Updates,
-        "status" | "check" | "apply" | "subscribe" | "setBeta" | "beta"
     >;
 }
 
