@@ -1,26 +1,16 @@
 #!/bin/sh
-# Pinned release archives from forgejo-contrib/forgejo-cli. Update the version
-# and both SHA-256 values together after reviewing the upstream release.
+# Build forgejo-cli v0.7.0 on the runtime's Debian release. The official Linux
+# binaries need a newer glibc than Bookworm. Keep the source commit and hash
+# together when updating; Cargo.lock pins the Rust dependencies.
 set -eu
-version=0.7.0
-arch="$(dpkg --print-architecture)"
-case "$arch" in
-    amd64)
-        target=x86_64
-        checksum=6803c12eed17bfadb40ba95da2a6ab58f9b4a7dc10eabfe3512fce7e2fe6216f
-        ;;
-    arm64)
-        target=aarch64
-        checksum=198987908e194704b4a350119596547bc95cd9b6518024d6d02c26f061cfce83
-        ;;
-    *) echo "forgejo-cli has no pinned release for $arch" >&2; exit 1 ;;
-esac
+commit=d014eb8ed5ff8b5793e135f2b4b99a5fb5793c2b
+checksum=748ce60eb18e72af83ef3956910933b1e091abf673f12ff9777aea214f6eae40
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT HUP INT TERM
-curl -fsSL --retry 3 -o "$work/fj.tar.gz" \
-    "https://codeberg.org/forgejo-contrib/forgejo-cli/releases/download/v${version}/forgejo-cli-${target}-linux.tar.gz"
-printf '%s  %s\n' "$checksum" "$work/fj.tar.gz" | sha256sum --check --status
-tar -xzf "$work/fj.tar.gz" -C "$work" fj
-install -m 0755 "$work/fj" /usr/local/bin/fj
-# Detect incompatible release binaries during the build, not after deployment.
-/usr/local/bin/fj --version
+curl -fsSL --retry 3 -o "$work/source.tar.gz" \
+    "https://codeberg.org/forgejo-contrib/forgejo-cli/archive/${commit}.tar.gz"
+printf '%s  %s\n' "$checksum" "$work/source.tar.gz" | sha256sum --check --status
+tar -xzf "$work/source.tar.gz" -C "$work" --strip-components=1
+cargo build --release --locked --manifest-path "$work/Cargo.toml"
+install -D -m 0755 "$work/target/release/fj" /out/fj
+/out/fj --version

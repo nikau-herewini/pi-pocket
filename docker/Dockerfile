@@ -8,6 +8,15 @@
 # Build from the repository root:
 #   docker build -f docker/Dockerfile -t pi-pocket .
 
+# Build the pinned Forgejo client against the same glibc as the runtime.
+# This stage follows the target platform for native amd64 and arm64 CI builds.
+FROM rust:1.94.0-bookworm AS forgejo-cli
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl pkg-config libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+COPY docker/install-fj.sh /tmp/install-fj.sh
+RUN sh /tmp/install-fj.sh
+
 FROM node:24-bookworm-slim AS deps
 
 WORKDIR /app
@@ -35,6 +44,7 @@ RUN apt-get update \
         git \
         jq \
         less \
+        libssl3 \
         openssh-client \
         procps \
         ripgrep \
@@ -60,8 +70,8 @@ RUN set -eux; \
 
 # Forgejo's client works alongside Git. Authentication is deployment-owned;
 # never put tokens into image layers or build arguments.
-COPY docker/install-fj.sh /tmp/install-fj.sh
-RUN sh /tmp/install-fj.sh && rm /tmp/install-fj.sh
+COPY --from=forgejo-cli /out/fj /usr/local/bin/fj
+RUN fj --version
 
 # The app: source, web app, docs it tells Pi about, and types for drop-ins.
 WORKDIR /app

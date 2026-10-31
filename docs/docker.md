@@ -4,9 +4,12 @@ Pi Pocket runs from its source with Node.js, so the container is thin: Node, Chr
 
 The image includes [`forgejo-cli`](https://codeberg.org/forgejo-contrib/forgejo-cli)
 v0.7.0 as `fj` for Forgejo pull requests, issues, and repository operations alongside
-Git. The build verifies pinned SHA-256 hashes for the amd64 and arm64 release
-archives and runs `fj --version`. To update it, review the release and change the
-version and both hashes in `docker/install-fj.sh` together.
+Git. A separate Rust build stage compiles it for amd64 and arm64 against Debian
+Bookworm, because the official prebuilt binaries need a newer glibc. The build
+verifies the pinned source archive's SHA-256, uses `cargo build --locked`, and runs
+`fj --version` in both the builder and runtime images. No Rust toolchain enters the
+runtime image. To update it, review the release and change the source commit and
+hash in `docker/install-fj.sh` together; review the pinned Rust toolchain too.
 
 Forgejo authentication belongs to the deployment, not the image. Use `fj --help`
 and `fj --host <host> auth add-token` for an explicit host; without a token argument,
