@@ -13,4 +13,4 @@ printf '%s  %s\n' "$checksum" "$work/source.tar.gz" | sha256sum --check --status
 tar -xzf "$work/source.tar.gz" -C "$work" --strip-components=1
 cargo build --release --locked --manifest-path "$work/Cargo.toml"
 install -D -m 0755 "$work/target/release/fj" /out/fj
-/out/fj --version
+/out/fj version

@@ -44,14 +44,14 @@ test("the Forgejo client builds pinned source against the runtime's Debian relea
     assert.match(installer, /cargo build --release --locked/);
     assert.match(dockerfile, /FROM rust:1\.94\.0-bookworm AS forgejo-cli/);
     assert.match(dockerfile, /COPY --from=forgejo-cli \/out\/fj \/usr\/local\/bin\/fj/);
-    assert.match(dockerfile, /RUN fj --version/);
+    assert.match(dockerfile, /RUN fj version/);
     assert.ok(installer.indexOf("sha256sum --check") < installer.indexOf("tar -xzf"));
     assert.match(installer, /install -D -m 0755/);
-    assert.match(installer, /\/out\/fj --version/);
+    assert.match(installer, /\/out\/fj version/);
     assert.match(dockerfile, /RUN sh \/tmp\/install-fj\.sh/);
     assert.match(
         source(".github/workflows/docker-check.yml"),
-        /--user 1000:1000 pi-pocket-smoke fj --version/,
+        /--user 1000:1000 pi-pocket-smoke fj version/,
     );
     assert.doesNotMatch(dockerfile, /ARG .*TOKEN|ENV .*TOKEN/);
 

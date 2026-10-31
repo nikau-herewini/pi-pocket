@@ -71,7 +71,7 @@ RUN set -eux; \
 # Forgejo's client works alongside Git. Authentication is deployment-owned;
 # never put tokens into image layers or build arguments.
 COPY --from=forgejo-cli /out/fj /usr/local/bin/fj
-RUN fj --version
+RUN fj version
 
 # The app: source, web app, docs it tells Pi about, and types for drop-ins.
 WORKDIR /app

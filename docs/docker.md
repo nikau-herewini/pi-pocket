@@ -7,7 +7,7 @@ v0.7.0 as `fj` for Forgejo pull requests, issues, and repository operations alon
 Git. A separate Rust build stage compiles it for amd64 and arm64 against Debian
 Bookworm, because the official prebuilt binaries need a newer glibc. The build
 verifies the pinned source archive's SHA-256, uses `cargo build --locked`, and runs
-`fj --version` in both the builder and runtime images. No Rust toolchain enters the
+`fj version` in both the builder and runtime images. No Rust toolchain enters the
 runtime image. To update it, review the release and change the source commit and
 hash in `docker/install-fj.sh` together; review the pinned Rust toolchain too.
 
