@@ -386,6 +386,14 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
+/* iOS Home Screen apps paint behind the translucent status bar. Match the top bar, not the darker desk.
+ * Components already apply safe-area padding; adding it here would count the inset twice. */
+@media (display-mode: standalone) {
+    html {
+        background: var(--bg);
+    }
+}
+
 #app {
     height: 100dvh;
 }

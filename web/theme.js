@@ -570,6 +570,20 @@ export function motionLevel() {
 
 const reducedMotion = () => motionLevel() === "reduced";
 
+/** Browser chrome follows the resolved theme surface, including CSS overrides of the palette's background. */
+function syncBrowserTheme() {
+    const root = document.documentElement;
+    const color = getComputedStyle(root).getPropertyValue("--bg").trim();
+
+    if (color) {
+        document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color);
+    }
+
+    document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", root.dataset.mode);
+}
+
+document.addEventListener("pocket:theme", syncBrowserTheme);
+
 /** Put the current look on the page: variables, mode, and the switches style.css reads from data attributes. */
 export function apply() {
     const root = document.documentElement;
@@ -631,8 +645,7 @@ export function apply() {
     };
 
     Object.assign(root.dataset, attrs);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", vars["--o-bg"]);
-    document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", attrs.mode);
+    syncBrowserTheme();
     // In safe mode, or before the list, the theme's stylesheets stay as the cache has them, for the next load.
     const css = sheets === null || safeMode() ? (cached.css ?? []) : sheets;
     const fonts = sheets === null || safeMode() ? (cached.fonts ?? []) : (lookOf()?.fonts ?? []);
@@ -737,6 +750,7 @@ export function preview(id) {
 
     setPalette(themeVars(palette));
     document.documentElement.dataset.mode = modeOf(palette);
+    syncBrowserTheme();
 }
 
 // ─── Follow desktop ─────────────────────────────────────────────────────────────
