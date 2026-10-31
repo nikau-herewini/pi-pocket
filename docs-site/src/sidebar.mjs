@@ -74,7 +74,7 @@ export const SIDEBAR = [
             ["docs/map.md", "Project map"],
             ["docs/architecture.md", "Architecture"],
             ["docs/features.md", "Features"],
-            ["docs/releases.md", "Releases and betas"],
+            ["docs/releases.md", "Rolling fork policy"],
             ["docs/release-notes.md", "Release notes"],
         ],
     },

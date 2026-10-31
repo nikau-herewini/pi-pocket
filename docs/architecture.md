@@ -287,6 +287,8 @@ What a browser shows is its person's choice of theme (`look`) and colors (`theme
 
 ## Updates of Pi Pocket itself
 
+**Fork policy:** The implementation below is inherited from upstream and discovers versioned releases, not rolling commits. It is not this fork's update mechanism. Update source checkouts or containers manually as [releases.md](releases.md) describes.
+
 `Updates` (`updates.ts`, `app.updates`) works out `installKind` from where the server's files are: a git checkout (`git`), the global package folder of the Node.js that runs it, as `npm root -g` gives it (`npm-global`), another `node_modules` folder (`npm-local`), the npx cache (`npx`), or none of these (`unknown`; `npm-install.ts` does the npm kinds). Every kind shares one status (`UpdateStatus`), one set of checks (the launcher runs the server, no sessions busy, the warning tick), the two settings of the `updates` extension, and the outcome format in `update-state.ts`. What differs is where the newest version comes from and how it goes in:
 
 - **The newest version.** An npm kind reads the registry's `latest` tag, and takes the notes, link, and date from the GitHub release of that version; if GitHub does not answer, the version stands without notes and is treated as one with a warning. A git checkout reads GitHub's newest release, or the version tags.

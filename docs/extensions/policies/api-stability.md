@@ -2,6 +2,9 @@
 
 This page tells which interfaces of Pi Pocket are for extensions, what Pi Pocket promises about them, and how they change. [The reference](../reference/host.md) and the exact types in [types/pocket.d.ts](../../../types/pocket.d.ts) tell what each interface is, and the guides tell how to use it. This page does not repeat them.
 
+> [!NOTE]
+> Release numbers, minor/patch release timing, and release-note promises below describe the inherited upstream policy. This fork does not create those releases or maintain a separate semantic-version schedule. Review compatibility and migration notes in each pull request before moving between commits ([rolling policy](../../releases.md)). Existing API levels, stable/experimental labels, and upstream “Since” metadata remain meaningful; do not infer fork compatibility or freshness from the package version alone.
+
 ## Terms
 
 - **Public:** an interface in the list below. Pi Pocket keeps it, or changes it only by the rules on this page.

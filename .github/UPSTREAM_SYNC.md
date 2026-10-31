@@ -3,6 +3,8 @@
 - `upstream` mirrors `TannerMidd/pi-pocket:main`. Never add custom commits there.
 - `main` is this fork's default branch and contains our changes.
 - Custom pull requests must target `main`.
+- This fork is rolling: no fork version bumps, Git tags, release branches, GitHub releases, or npm publishing.
+- Keep upstream version metadata when integrating source. Identify fork builds by commit SHA or container digest ([policy](../docs/releases.md)).
 
 ## Automatic updates
 

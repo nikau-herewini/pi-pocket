@@ -23,6 +23,8 @@ concurrency:
 
 jobs:
     publish:
+        # This rolling fork does not publish npm releases. Keep this for upstream only.
+        if: github.repository == 'TannerMidd/pi-pocket'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4

@@ -44,8 +44,8 @@ A drop-in extension stays when Pi Pocket updates, and the owner can turn it off 
 - [map.md](map.md): where each part of the code is, and how to add the usual things.
 - [architecture.md](architecture.md): how the parts depend on each other, and the orders that they need.
 - [features.md](features.md): what each feature does, as people use it.
-- [releases.md](releases.md): the weekly release on Fridays, the betas between releases, and how to run a beta.
-- [release-notes.md](release-notes.md): how to write the notes of a release.
+- [releases.md](releases.md): the rolling fork policy, commit-based build identifiers, and how to update.
+- [release-notes.md](release-notes.md): how to write pull request change notes and migration warnings.
 - [../SECURITY.md](../SECURITY.md): what Pi Pocket protects, and what it does not.
 
 The same pages are on the web, with search: https://nikau-herewini.github.io/pi-pocket/docs/.
