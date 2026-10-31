@@ -2,7 +2,8 @@
 #
 # Pi Pocket in a container. The app runs straight from its source (Node strips the
 # TypeScript), so this image only installs the runtime packages and the tools Pi's
-# built-in extensions use: git, GitHub's gh, ripgrep, fd, Chromium, and cloudflared.
+# built-in extensions use, plus Forgejo's fj: git, gh, ripgrep, fd, Chromium,
+# cloudflared, and fj.
 #
 # Build from the repository root:
 #   docker build -f docker/Dockerfile -t pi-pocket .
@@ -56,6 +57,11 @@ RUN set -eux; \
         "https://github.com/cloudflare/cloudflared/releases/${CLOUDFLARED_VERSION}/download/cloudflared-linux-${cloudflared_arch}"; \
     chmod 0755 /usr/local/bin/cloudflared; \
     /usr/local/bin/cloudflared --version
+
+# Forgejo's client works alongside Git. Authentication is deployment-owned;
+# never put tokens into image layers or build arguments.
+COPY docker/install-fj.sh /tmp/install-fj.sh
+RUN sh /tmp/install-fj.sh && rm /tmp/install-fj.sh
 
 # The app: source, web app, docs it tells Pi about, and types for drop-ins.
 WORKDIR /app

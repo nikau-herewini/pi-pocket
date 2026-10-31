@@ -80,6 +80,8 @@ jobs:
                       test "$exit_code" = 0 || test "$exit_code" = 143
                   }
                   start_and_wait
+                  docker exec --user 1000:1000 pi-pocket-smoke fj --version
+                  docker exec --user 1000:1000 pi-pocket-smoke fj pr --help
                   docker exec pi-pocket-smoke node -e \
                       "require('node:fs').writeFileSync('/data/docker-smoke-marker', 'persisted')"
                   timeout 30s docker exec pi-pocket-smoke chromium \
