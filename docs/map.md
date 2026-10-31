@@ -184,7 +184,7 @@ The agent's side of Design mode. `extensions/design.ts` installs it (see Extensi
 | `themes.ts`, `themes/`                 | Theme folders (`app.themes`): the built-in ones in `web/themes/` and the owner's in the data folder's `themes/`, read and checked (`themes/format.ts`: `theme.json`, `colors.toml`, limits; `themes/css.ts`: CSS's tokens and the files it loads), each one's last good version, watching, Duplicate, Remove, Edit with Pi |
 | `versions.ts`                          | The running package metadata and version comparisons for gallery entries' and themes' `minPocket` (a pre-release counts as its release); `compareReleases` also orders pre-releases                                                                                                                                        |
 
-Outside `src/`: the container build is `docker/Dockerfile` and `docker/entrypoint.sh` (with `.dockerignore` for the build context), `docker-compose.yml` runs it, and `.env.example` lists the host-side variables for Compose; [docker.md](docker.md) explains them. Docker image replacement is the only deployment update path. There is no in-app updater or launcher rollback.
+Outside `src/`: the container build is `docker/Dockerfile`, `docker/install-fj.sh` (the pinned Forgejo CLI source build), and `docker/entrypoint.sh` (with `.dockerignore` for the build context), `docker-compose.yml` runs it, and `.env.example` lists the host-side variables for Compose; [docker.md](docker.md) explains them. Docker image replacement is the only deployment update path. There is no in-app updater or launcher rollback.
 
 ## Extensions: `src/server/extensions/`
 
