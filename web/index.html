@@ -10,6 +10,8 @@
         <meta name="theme-color" content="#13141c" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <!-- Let the themed safe area show behind the Home Screen app's status bar. iOS owns its icon colors. -->
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <title>Pi Pocket</title>
         <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -71,6 +73,9 @@
                         document
                             .querySelector('meta[name="theme-color"]')
                             .setAttribute("content", chosen.color || look.vars["--o-bg"]);
+                        document
+                            .querySelector('meta[name="color-scheme"]')
+                            .setAttribute("content", root.dataset.mode || "dark");
                     }
                 } catch (error) {}
                 document.write(

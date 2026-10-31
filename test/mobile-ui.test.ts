@@ -228,6 +228,62 @@ async function openWithRows(count: number): Promise<void> {
     `);
 }
 
+test("mobile browser chrome follows theme colors, CSS overrides, and previews", real, async () => {
+    const result = await inPage<{
+        statusBar: string;
+        override: string;
+        preview: string;
+        restored: string;
+        before: string;
+        previewMode: string;
+        mode: string;
+    }>(`
+        const { apply, preview } = await import("/theme.js");
+        const root = document.documentElement;
+        const tint = () => document.querySelector('meta[name="theme-color"]').content;
+        const original = root.style.getPropertyValue("--bg");
+
+        try {
+            apply();
+            const before = tint();
+
+            root.style.setProperty("--bg", "#123456");
+            document.dispatchEvent(new Event("pocket:theme"));
+            const override = tint();
+
+            root.style.removeProperty("--bg");
+            preview("catppuccin-latte");
+            const previewColor = tint();
+            const previewMode = document.querySelector('meta[name="color-scheme"]').content;
+
+            preview(null);
+            apply();
+
+            return JSON.stringify({
+                statusBar: document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content,
+                override,
+                preview: previewColor,
+                restored: tint(),
+                before,
+                previewMode,
+                mode: document.querySelector('meta[name="color-scheme"]').content,
+            });
+        } finally {
+            if (original) root.style.setProperty("--bg", original);
+            else root.style.removeProperty("--bg");
+            preview(null);
+            apply();
+        }
+    `);
+
+    assert.equal(result.statusBar, "black-translucent");
+    assert.equal(result.override, "#123456");
+    assert.equal(result.preview, "#eff1f5");
+    assert.equal(result.previewMode, "light");
+    assert.equal(result.restored, result.before);
+    assert.ok(["dark", "light"].includes(result.mode));
+});
+
 test("the served SVG icon decodes as an image", real, async () => {
     const [width, height] = await inPage<[number, number]>(`
         const image = new Image();
