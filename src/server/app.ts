@@ -2205,6 +2205,8 @@ export class PocketApp {
                 startedAt: this.startedAt,
                 home: homedir(),
                 defaultCwd: this.defaultCwd,
+                // Where the folder picker's Clone puts repositories (`POST /api/clone`).
+                cloneDir: this.workspace.cloneDir,
                 extensions: this.loader.extensionNames(),
                 // The browser modules this person's tabs load (`extension-ui.js`), each with the tools its module
                 // installs: the only ones whose calls it may describe (`pocket.toolCall`).

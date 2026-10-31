@@ -6,6 +6,7 @@ import { NotificationsSheet } from "./notify.js";
 import { ShareSheet } from "./share.js";
 import { AppearanceSheet } from "./sheets/appearance.js";
 import { BranchPicker } from "./sheets/branch.js";
+import { CloneSheet } from "./sheets/clone.js";
 import { ExtensionsContent, ExtensionsSheet } from "./sheets/extensions.js";
 import { FileSheet } from "./sheets/file.js";
 import { FindSheet } from "./sheets/find.js";
@@ -199,6 +200,12 @@ function sheetBody(sheet) {
             break;
         case "cwd":
             body = html`<${CwdSheet} mode=${sheet.mode} fromList=${sheet.fromList === true} />`;
+            break;
+        case "clone":
+            body = html`<${CloneSheet}
+                fromList=${sheet.fromList === true}
+                worktree=${sheet.worktree === true}
+            />`;
             break;
         case "artifacts":
             body = html`<${ArtifactsSheet} />`;
