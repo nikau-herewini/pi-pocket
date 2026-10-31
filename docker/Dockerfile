@@ -5,7 +5,6 @@
 # built-in extensions use: git, GitHub's gh, ripgrep, fd, Chromium, and cloudflared.
 #
 # Build from the repository root:
-#   podman build -f docker/Dockerfile -t pi-pocket .
 #   docker build -f docker/Dockerfile -t pi-pocket .
 
 FROM node:24-bookworm-slim AS deps
@@ -67,7 +66,6 @@ COPY src ./src
 COPY web ./web
 COPY docs ./docs
 COPY types ./types
-COPY test ./test
 COPY README.md AGENTS.md SECURITY.md LICENSE ./
 
 # Pi's folder (sign-ins, settings, skills, sessions) and Pi Pocket's data folder

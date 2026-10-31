@@ -16,8 +16,8 @@ The notes are for people who run Pi Pocket, and some of them read on a phone. Ea
 - **No internal names outside "For theme and extension authors".** File names, functions, classes, and settings keys belong there or in the docs.
 - **Credit at the end of the bullet**, in parentheses: `(#139, by @vitalNohj)`. For an issue that a person reported: `(#131, reported by @vitalNohj)`. Use "Fixes #N" where the pull request should close the issue.
 - **Leave out empty sections.** A small change can be a few bullets and the update steps.
-- **Put anything one-way or risky in a `[!WARNING]` alert** at the top. Put needed steps (`npm install`, a restart) in a `[!IMPORTANT]` alert.
-- **Do not rely on the in-app updater to read these notes.** It follows upstream versions and releases, not this fork's rolling commits. Put manual steps and one-way changes in the pull request's warning, and review them before deploying.
+- **Put anything one-way or risky in a `[!WARNING]` alert** at the top. Put needed steps (an image pull, container recreation, or data migration) in a `[!IMPORTANT]` alert.
+- **Review these notes before replacing the container.** The in-app self-updater is removed; no release check reads the notes for you. Put manual steps and one-way changes in the pull request's warning, and review them before deploying.
 - **Keep the review story short and folded** in a `<details>` block. Always say what was not tested.
 
 ## The template

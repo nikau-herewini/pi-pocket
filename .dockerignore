@@ -4,6 +4,10 @@
 .gitattributes
 
 node_modules
+# Tests and local crash dumps are development artifacts, not runtime inputs.
+test
+core
+core.*
 npm-debug.log*
 *.log
 

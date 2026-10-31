@@ -1,30 +1,28 @@
-# Running Pi Pocket in Docker or Podman
+# Running Pi Pocket in Docker
 
 Pi Pocket runs from its source with Node.js, so the container is thin: Node, Chromium for the Browser panel, and the command-line tools the built-in extensions use (`git`, `gh`, `ripgrep`, `fd`, and `cloudflared`).
 
-The image is built from the repository root. [`docker-compose.yml`](../docker-compose.yml) is the usual way to run it; [`docker/Dockerfile`](../docker/Dockerfile) works with plain `docker run` or `podman run` too.
+Docker is the only supported deployment runtime for this fork. [`docker-compose.yml`](../docker-compose.yml) runs the published image by default; [`docker/Dockerfile`](../docker/Dockerfile) can build a custom image from the repository root. Host Node.js, npm, Nix, native systemd, Android, and other container engines are not supported deployment paths. Source checkouts remain useful for development and tests.
 
 ## Start it
 
 ```bash
 cp .env.example .env    # optional, but it is where the external folders are set
-docker compose up -d --build
-# or
-podman compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
 Then read the owner's sign-in link from the log. It is the key to this server, so keep it private:
 
 ```bash
 docker compose logs pi-pocket | grep '/login?token='
-podman logs pi-pocket | grep '/login?token='
 ```
 
 The link is printed again on every start. Open it once per browser. The launcher's interactive menu is not available in a container, so the access mode comes from `PI_POCKET_ACCESS` (default `lan`).
 
 In `lan` mode the printed link names the container's own address (often `172.x.x.x`), which other devices cannot reach. Keep its path and token, and change the address to the host's: `http://localhost:8787/login?token=…` on the host, or the host's address on the local network for a phone. Invite links use the address the app is open at, so open it at the host's network address before you invite someone.
 
-Stop it with `docker compose down` or `podman compose down`. `down -v` is not needed for anything here: the state is in the host folders, not in an anonymous volume.
+Stop it with `docker compose down`. `down -v` is not needed for anything here: the state is in the host folders, not in an anonymous volume.
 
 The container's entrypoint clears Chromium's stale `Singleton*` locks in `./data/browser/profile`. Without that, a recreated container can refuse to start the embedded browser, because the old locks name the previous container.
 
@@ -41,13 +39,13 @@ Images support `linux/amd64` and `linux/arm64`:
 
 After the first publish, a maintainer must check the package's visibility in GitHub's package settings. Make it public for anonymous pulls, or authenticate with a token that has `read:packages` for private pulls.
 
-To use a published image with the same ports, environment, and mounts, replace the service's `build:` block and `image: pi-pocket:local` in `docker-compose.yml` with:
+Compose uses the published `latest` image unless `PI_POCKET_IMAGE` is set in `.env`. To pin an immutable image, set:
 
-```yaml
-image: ghcr.io/nikau-herewini/pi-pocket:latest
+```dotenv
+PI_POCKET_IMAGE=ghcr.io/nikau-herewini/pi-pocket@sha256:<image-digest>
 ```
 
-Then start or update without a local build:
+A commit image tag works too: `ghcr.io/nikau-herewini/pi-pocket:sha-<full-commit-sha>`. No Compose file edits are needed. Start or update without a local build:
 
 ```bash
 docker compose pull
@@ -91,9 +89,7 @@ Do not use `PI_POCKET_ACCESS=local` with the published port: `local` listens on 
 
 ## Permissions
 
-Compose runs the container as root. With rootless Podman, root inside the container is your own host user, so the bind-mounted folders are writable without extra work. This is why the default is root, despite the Browser panel being a Chromium process.
-
-With Docker, root is root. The app still works, but files created in the mounts belong to root on the host. To run as your user instead, make sure the external folders are owned by that user and add this to the service:
+Compose runs the container as root by default. With rootful Docker, files created in the mounts belong to root on the host. To run as your user instead, make sure the external folders are owned by that user and add this to the service:
 
 ```yaml
 user: "1000:1000"
@@ -107,14 +103,31 @@ On an SELinux host, add `:Z` to bind mounts, or run `chcon` on the folders yours
 
 ## Updating
 
-The source is copied into the image, so rebuild after pulling:
+Record the running image digest and stop the service before backing up all persistent folders. Review the intervening pull requests for migration warnings. Then update the selected image and recreate the service:
 
 ```bash
-git pull
-docker compose up -d --build
+docker compose images
+image_id="$(docker inspect pi-pocket --format '{{.Image}}')"
+docker image inspect "$image_id" --format '{{json .RepoDigests}}'
+docker compose stop
+# Back up all configured persistent folders here.
+docker compose pull
+docker compose up -d --force-recreate
+docker compose ps
 ```
 
-The external folders and the database are untouched. Extensions are live-edited without a rebuild only once they are mounted; the built-in code and the web app are read from the image, so a rebuild is needed for changes to `src/` and `web/`.
+Save the `RepoDigests` entry (`repository@sha256:…`) for recovery; the container's `.Image` value alone is a local image ID, not a pullable registry digest. A locally built development image may have no `RepoDigests`. If `PI_POCKET_IMAGE` pins a digest or commit, change it to the chosen build before pulling. The in-app self-updater is removed: updates replace the container image, never `/app` in a running container. Mounted folders stay in place, but a newer app can migrate their contents. A rollback can require restoring the backup, not just selecting the previous image.
+
+## Custom images for development
+
+The built-in source and web app are copied into the image. To test local changes, build an image and select it for Compose:
+
+```bash
+docker build -f docker/Dockerfile -t pi-pocket:local .
+PI_POCKET_IMAGE=pi-pocket:local docker compose up -d --pull never --force-recreate
+```
+
+The production image omits development dependencies and the test suite. Run source tests in a development checkout, not inside the production image. Mounted drop-in extensions and themes can still be edited without rebuilding the image.
 
 ## Security
 

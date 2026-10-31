@@ -16,19 +16,30 @@ This fork uses a rolling, commit-based maintenance model. It does not maintain i
 - GitHub Pages publishes documentation from `main`. It does not wait for a release or a version bump.
 - This fork has no npm publishing workflow, packaging allowlist, or pack/publish lifecycle hooks. Its package stays `private` to prevent accidental npm publication. `npm install -g pi-pocket` and `npx pi-pocket` install upstream, not this fork.
 
-## Updating a source checkout
+## Supported runtime
 
-Stop the server and back up its data before updating. Start with a clean checkout: commit or save any local work before switching branches. Review the pull requests between your current commit and the target commit, especially database and compatibility changes.
+Docker is the only supported deployment runtime. Use the published image at `ghcr.io/nikau-herewini/pi-pocket:latest`, a `sha-<full-commit-sha>` tag, or an immutable digest reference. The default Compose service uses `${PI_POCKET_IMAGE:-ghcr.io/nikau-herewini/pi-pocket:latest}` without a build block. Set `PI_POCKET_IMAGE` in `.env` to select a different published tag or digest.
+
+Source checkouts and local image builds are for development and testing only. Host npm installations, native systemd services, Nix, and Android/Termux are not supported deployment paths. This does not restrict phone browsers from using the Docker deployment.
+
+## Updating a deployment
+
+Record the current image reference and digest. Review the pull requests between the current and target commits, especially database and compatibility changes. Stop the service and back up all persistent folders, including Pi's credentials and workspace, before updating.
+
+If `PI_POCKET_IMAGE` pins a SHA tag or digest, change it to the target image first. Then pull and recreate the container:
 
 ```bash
-git rev-parse HEAD       # record the current commit for recovery
-git switch main
-git pull --ff-only origin main
-npm ci
-npm start
+docker compose pull
+docker compose up -d --no-build --force-recreate
 ```
 
-The upstream version/release-based in-app updater is not this fork's update mechanism. Turn off **Look for new versions** under Menu → Extensions → Installed → **Pi Pocket updates** to avoid irrelevant release checks. Use the source procedure above, or pull and recreate a published container. A rollback after a data migration can require restoring the backup as well as the previous code.
+Do not update application files inside the container with npm or Git. In-app image updates are unavailable: updates replace containers, not application files in the running image. A server restart alone does not load a new image; updates must pull and recreate the container.
+
+To roll back, select the previous image digest and recreate the container. A rollback after a data migration can also require restoring the matching backup. See the [Docker instructions](docker.md) for mounts and access settings.
+
+## Updating a source checkout
+
+This section is for development and testing only. Use a clean source checkout and separate test data. Save local work, record `git rev-parse HEAD`, then use `git pull --ff-only origin main` and `npm ci`. Run the checks and throwaway server described in the [development guide](../README.md#development). This is not a deployment update procedure.
 
 ## Change notes
 

@@ -1,8 +1,8 @@
-# Pi Pocket in Docker or Podman.
+# Pi Pocket in Docker (the only supported deployment runtime).
 #
 #   cp .env.example .env       # optional: change ports and external folders
-#   docker compose up -d --build
-#   podman compose up -d --build
+#   docker compose pull
+#   docker compose up -d
 #
 # The folders under ./data are yours: edit extensions and themes there, keep
 # Pi's sign-ins in ./data/pi, and put the projects Pi works on in ./data/workspace.
@@ -10,17 +10,13 @@
 #
 # Sign in at the link the launcher prints:
 #   docker compose logs pi-pocket | grep '/login?token='
-#   podman logs pi-pocket | grep '/login?token='
 # and change its address (the container's) to the host's, such as localhost.
 
 name: pi-pocket
 
 services:
     pi-pocket:
-        build:
-            context: .
-            dockerfile: docker/Dockerfile
-        image: pi-pocket:local
+        image: ${PI_POCKET_IMAGE:-ghcr.io/nikau-herewini/pi-pocket:latest}
         container_name: pi-pocket
         restart: unless-stopped
         stop_grace_period: 30s
@@ -58,9 +54,8 @@ services:
 
         working_dir: /workspace
 
-        # Compose runs the container as root. Rootless Podman maps that to your own
-        # host user, which is what makes the bind-mounted folders writable. With
-        # Docker you can run as your user instead, if the folders are owned by it:
+        # Compose runs the container as root. To run as your host user instead,
+        # make sure the bind-mounted folders are owned by that user:
         #
         # user: "1000:1000"
 

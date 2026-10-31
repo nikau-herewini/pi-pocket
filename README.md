@@ -5,10 +5,10 @@
 **Your Pi coding agent, in your pocket.**
 
 A durable, multiplayer, mobile-first web app for Pi agents, built on [Pi Durable](https://earendil.com/posts/pi-durable/).<br>
-Runs on your own machine or directly on your phone. No cloud VM.
+Deploy with Docker on your own machine. Use it from your phone or any browser. No cloud VM required.
 
 [![Rolling main](https://img.shields.io/badge/channel-rolling%20main-7aa2f7)](https://github.com/nikau-herewini/pi-pocket/commits/main/)
-[![Node.js 22.19+](https://img.shields.io/badge/node-%E2%89%A5%2022.19-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Docker runtime](https://img.shields.io/badge/runtime-Docker-2496ed?logo=docker&logoColor=white)](docs/docker.md)
 [![MIT license](https://img.shields.io/badge/license-MIT-ff9e64)](LICENSE)
 
 [Website](https://nikau-herewini.github.io/pi-pocket/) · [Quick start](#quick-start) · [Feature tour](docs/features.md) · [Docs](https://nikau-herewini.github.io/pi-pocket/docs/)
@@ -24,7 +24,7 @@ Runs on your own machine or directly on your phone. No cloud VM.
 - **Made for phones.** Push notifications, dictation, sharing into Pi from other apps, and a home-screen app.
 - **PiP.** An assistant that starts, follows, and reports on your other sessions, and watches GitHub for you.
 - **Your models.** Pi's own providers, sign-ins, skills, and prompt templates, with the model chosen per session.
-- **Live-editable.** No build step. Pi can change Pi Pocket while it runs, and you can add your own extensions.
+- **Extensible.** Add mounted extensions and themes without rebuilding the image. Source editing is available for development and testing.
 
 The [feature tour](docs/features.md) covers everything else, from plan mode and peek tiles to the built-in browser.
 
@@ -34,54 +34,45 @@ This fork tracks `main` through pull requests. It does not maintain its own vers
 
 ## Quick start
 
-Requires Node.js 22.19 or newer. Runs on Linux, macOS, Windows, and Android (Termux); Linux is the most tested. Sign in to a provider with Pi first (`pi`, then `/login`), or later from the app's Providers sheet.
+Docker with the Compose plugin is the only supported deployment runtime. The default Compose service pulls `ghcr.io/nikau-herewini/pi-pocket:latest`; no host Node.js or npm installation is required. Source checkouts and local image builds are for [development and testing](#development) only. Native host services, Nix, and Android/Termux deployments are not supported.
 
-Run this fork from a source checkout, or use its [published Docker image](docs/docker.md#published-images). `npm install -g pi-pocket` and `npx pi-pocket` install upstream, not this fork.
+Get the Compose configuration and start the published image:
 
 ```bash
 git clone https://github.com/nikau-herewini/pi-pocket.git
 cd pi-pocket
-npm install
-npm start
+cp .env.example .env    # review the persistent folders and access settings
+docker compose pull
+docker compose up -d --no-build
+docker compose logs pi-pocket
 ```
 
-The launcher asks how your devices should connect, then prints a sign-in link and a QR code. The link is the owner's key: keep it private. `--rotate-token` replaces it and signs out every device that used it.
+The checkout supplies configuration here; it is not the deployed runtime. Follow the [Docker instructions](docs/docker.md) for persistent mounts, permissions, and access settings. Open the owner's sign-in link from the logs, using the host's address rather than the container's internal address. Keep the link private. Sign in to a model provider from the app's Providers sheet.
 
-While it runs: **q** quit · **r** restart server · **a** change access · **o** open in browser · **s** show QR code.
+For a specific source commit, set `PI_POCKET_IMAGE=ghcr.io/nikau-herewini/pi-pocket:sha-<full-commit-sha>` in `.env`. Both `latest` and SHA tags can change after a rebuild. Use `PI_POCKET_IMAGE=ghcr.io/nikau-herewini/pi-pocket@sha256:<digest>` for an immutable deployment.
 
-**Updating this fork:** Stop the server, back up its data, review the intervening commits and pull request migration notes, then, from a clean checkout on `main`, run `git pull --ff-only origin main`, `npm ci`, and `npm start`. Record `git rev-parse HEAD` before updating so you know the previous build. For containers, pull and recreate the service ([Docker instructions](docs/docker.md)). Do not use the upstream version/release-based in-app updater to track this fork. Database migrations can require restoring a backup when rolling back; see the [maintenance policy](docs/releases.md).
+**Updates:** Stop the service and back up its persistent folders. Record the current image digest and review the intervening commits and pull request migration notes. Then pull and recreate the container:
 
-### Other ways to run it
+```bash
+docker compose pull
+docker compose up -d --no-build --force-recreate
+```
 
-- **Docker or Podman:** `docker compose up -d --build`. See [docs/docker.md](docs/docker.md).
-- **Nix:** `nix run github:nikau-herewini/pi-pocket`, or the NixOS module `services.pi-pocket.enable = true;` ([nix/module.nix](nix/module.nix)).
-- **Android (Termux):**
-
-    ```bash
-    pkg update && pkg upgrade && pkg install nodejs git
-    npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-    pi    # /login, then quit
-    git clone https://github.com/nikau-herewini/pi-pocket.git
-    cd pi-pocket && npm install --ignore-scripts && termux-wake-lock && npm start
-    ```
-
-    Lancet Guard may not load on Android. If it is on but fails, start with `PI_POCKET_GUARD=off`.
+Change a pinned image reference before pulling an update. In-app image updates are unavailable because updates replace containers. Do not run npm inside the container to update it. Database migrations can require restoring a backup when rolling back; see the [maintenance policy](docs/releases.md).
 
 ## Remote access
 
-Choose a mode in the launcher, or pass `--access`:
+Configure container access in `.env`; the interactive launcher menu is not available in Docker. See the [Docker access settings](docs/docker.md#access-and-ports).
 
-| Mode         | Who can connect      | Notes                                                    |
-| ------------ | -------------------- | -------------------------------------------------------- |
-| `local`      | This machine         | `127.0.0.1`; bring your own tunnel to port 8787          |
-| `lan`        | Your local network   | Plain http                                               |
-| `cloudflare` | Anyone with the link | Free https quick tunnel, no account; needs `cloudflared` |
-| `tailscale`  | Your tailnet         | Tailscale address only                                   |
+- **Local host:** Keep `PI_POCKET_ACCESS=lan` inside the container and set `PI_POCKET_BIND=127.0.0.1` on the host.
+- **Local network:** Use `PI_POCKET_ACCESS=lan` and publish port 8787 on the host's network address. This uses plain HTTP.
+- **Cloudflare:** Use `PI_POCKET_ACCESS=cloudflare` for a public HTTPS quick tunnel. The image includes `cloudflared`.
+- **Tailscale:** Run Tailscale on the host and route it to the container's published port. The container does not normally have a tailnet address.
 
-Other options: `--port` (8787), `--cwd`, `--data` (`~/.pi-pocket`), `--host`, and `-y` to reuse the last access choice. `npm start -- --help` lists them all. `PI_POCKET_BROWSER` and `PI_POCKET_BROWSER_ARGS` pick the built-in browser and its flags when Chromium or Chrome is not found by itself. `PI_POCKET_PROMPT_DATE=1` puts today's date in Pi's system prompt; it is left out by default, so the prompt cache does not start over when the date changes. `PI_POCKET_CACHE_KEEPER=off` turns off the prompt cache keeper, which keeps a model's prompt cache warm while a run waits on a tool call ([features](docs/features.md)).
+Push notifications and dictation need HTTPS. `PI_POCKET_BROWSER` and `PI_POCKET_BROWSER_ARGS` pick the built-in browser and its flags when Chromium or Chrome is not found by itself. `PI_POCKET_PROMPT_DATE=1` puts today's date in Pi's system prompt; it is left out by default, so the prompt cache does not start over when the date changes. `PI_POCKET_CACHE_KEEPER=off` turns off the prompt cache keeper, which keeps a model's prompt cache warm while a run waits on a tool call ([features](docs/features.md)).
 
 > [!WARNING]
-> Anyone who can steer a session can make Pi run commands on this machine, as you. That reaches your files, Pi Pocket's own settings and tokens, and its code. Invite only people you would trust at your keyboard. View-only users cannot make Pi act. [SECURITY.md](SECURITY.md) says what is protected and what is not.
+> Anyone who can steer a session can make Pi run commands as the container's user. That reaches its mounted files, Pi Pocket's own settings and tokens, and provider credentials. Invite only people you would trust at your keyboard. View-only users cannot make Pi act. [SECURITY.md](SECURITY.md) says what is protected and what is not.
 
 ## Documentation
 
@@ -90,6 +81,15 @@ Other options: `--port` (8787), `--cwd`, `--data` (`~/.pi-pocket`), `--host`, an
 - [Engineering](https://nikau-herewini.github.io/pi-pocket/engineering.html) and [code map](docs/map.md): how Pi Pocket is built.
 
 ## Development
+
+A source checkout needs Node.js 22.19 or newer. It is for development and testing, not a supported deployment. Local Docker image builds are also allowed for development; the default Compose service uses the published image without a build block. Use separate test data, never the live database.
+
+```bash
+git clone https://github.com/nikau-herewini/pi-pocket.git
+cd pi-pocket
+npm ci
+node test/serve.ts  # throwaway development server
+```
 
 ```bash
 npm run check   # type-check
@@ -106,11 +106,13 @@ npm run lint    # check the layout rules
 - Only one server process can use the database at a time.
 - Pi's own extensions are not supported. Pi Pocket runs its own, on Pi Durable.
 - A git worktree keeps a session's files apart; it is not a sandbox.
-- The built-in browser needs Chromium, Chrome, Brave, or Edge on the server. It is tested on Linux and macOS.
+- The published Docker image includes Chromium for the built-in browser.
 
 The [full list](docs/features.md#limitations) has the details.
 
 ## Credits and license
+
+This fork builds on [Tanner Middleton's Pi Pocket](https://github.com/tannermidd/pi-pocket). Upstream package versions and API labels remain upstream metadata.
 
 Inspired by [Mario Zechner's demo](https://x.com/badlogicgames/status/2106452296087302173) of his own Pi app. Pi Pocket is an independent project, not affiliated with Earendil. The bundled fonts keep their own licenses, which are beside them in [web/fonts/](web/fonts/).
 

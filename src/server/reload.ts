@@ -62,7 +62,6 @@ const ORDER = [
     "session-tags.ts",
     "ask.ts",
     "ask-someone.ts",
-    "updates.ts",
     "design.ts",
     "tool-search.ts",
 ];
@@ -101,7 +100,6 @@ const TITLES: Record<string, string> = {
     "session-tags.ts": "Session tags",
     "ask.ts": "Ask",
     "ask-someone.ts": "Ask someone",
-    "updates.ts": "Pi Pocket updates",
     "design.ts": "Design",
     "tool-search.ts": "Tool search",
 };
@@ -895,10 +893,10 @@ export class ExtensionLoader {
         }
     }
 
-    /** While an update moves the checkout, edits load nothing: the restart after it loads the new version. */
+    /** Whether changes to extension files are ignored until loading resumes. */
     #paused = false;
 
-    /** Stop or start loading modules again when they change, as `watch` does (`updates.ts`). */
+    /** Stop or start loading modules again when their files change. */
     pause(paused: boolean): void {
         this.#paused = paused;
         this.#webs.pause(paused);
