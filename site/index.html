@@ -86,15 +86,22 @@
                         </div>
                         <div class="install">
                             <span class="prompt">$</span>
-                            <code id="install-cmd">npm install -g pi-pocket</code>
+                            <code id="install-cmd"
+                                >docker pull ghcr.io/nikau-herewini/pi-pocket:latest</code
+                            >
                             <button class="copy" type="button" data-copy="#install-cmd">
                                 Copy
                             </button>
                         </div>
+                        <p class="note">
+                            The image pull downloads this rolling fork. See the
+                            <a href="docs/docker/#published-images">container setup instructions</a>
+                            to start it with persistent data.
+                        </p>
                         <div class="facts">
                             <span>Self-hosted</span>
                             <span>Uses Pi's sign-ins</span>
-                            <span>No build step</span>
+                            <span>Rolling main · no versioned releases</span>
                             <span>Runs on Android</span>
                             <span>MIT license</span>
                         </div>
@@ -1106,10 +1113,11 @@
                             aria-labelledby="tab-desktop"
                             tabindex="0"
                         ><span class="c"># Requires Node.js 22.19 or newer</span>
-<span class="p">$ </span>npm install -g pi-pocket
-<span class="p">$ </span>pi-pocket
-<span class="c"># Or try it once: npx pi-pocket</span>
-<span class="c"># To change its code: git clone, npm install, npm start</span></pre>
+<span class="p">$ </span>git clone https://github.com/nikau-herewini/pi-pocket.git
+<span class="p">$ </span>cd pi-pocket
+<span class="p">$ </span>npm ci
+<span class="p">$ </span>npm start
+<span class="c"># Rolling fork: identify builds by commit SHA</span></pre>
                         <pre
                             id="cmd-android"
                             role="tabpanel"
@@ -1151,7 +1159,9 @@
                 <div>
                     <nav class="footer-links" aria-label="Footer">
                         <a href="https://github.com/nikau-herewini/pi-pocket">GitHub</a>
-                        <a href="https://github.com/nikau-herewini/pi-pocket/releases">Releases</a>
+                        <a href="https://github.com/nikau-herewini/pi-pocket/commits/main/"
+                            >Commit history</a
+                        >
                         <a href="docs/">Docs</a>
                         <a
                             href="https://github.com/nikau-herewini/pi-pocket/blob/main/docs/features.md"

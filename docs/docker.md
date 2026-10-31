@@ -32,6 +32,8 @@ The container's entrypoint clears Chromium's stale `Singleton*` locks in `./data
 
 The fork at `nikau-herewini/pi-pocket` publishes to GitHub Container Registry on every push to `main`. Maintainers can also run **Publish Docker image** manually from the Actions tab on `main`. The workflow uses the repository's `GITHUB_TOKEN` with `packages: write`; no registry password secret is needed.
 
+This is a rolling fork with no semantic-version image tags, Git tags, or GitHub releases. The container tags below identify the moving channel and source commit; they are not fork release versions.
+
 Images support `linux/amd64` and `linux/arm64`:
 
 - `ghcr.io/nikau-herewini/pi-pocket:latest` tracks the most recently published `main` build, not an upstream release.

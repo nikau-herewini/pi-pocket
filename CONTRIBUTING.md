@@ -18,5 +18,6 @@ Thank you for your help. This page tells how to send a change.
 ## Send it
 
 - Open a pull request with a short title, and a brief note: what changed, why, and what you tested.
-- Maintainers merge with a merge commit, so your commits keep your name. A ready pull request goes into the open release branch: it comes out in the next beta and in Friday's release ([docs/releases.md](docs/releases.md)).
-- A release pull request's description is the release notes: [docs/release-notes.md](docs/release-notes.md) tells how to write them.
+- Target `main`. Every change, including maintainer changes and upstream integrations, must go through a pull request. Maintainers use merge commits to preserve ancestry and authorship.
+- This fork rolls forward by commit. Do not create fork version bumps, Git tags, release branches, or GitHub releases ([maintenance policy](docs/releases.md)). Keep upstream package versions and API version metadata intact.
+- Put change notes, migration steps, and validation in the pull request description ([change-note guide](docs/release-notes.md)).

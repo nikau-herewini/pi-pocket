@@ -7,7 +7,7 @@
 A durable, multiplayer, mobile-first web app for Pi agents, built on [Pi Durable](https://earendil.com/posts/pi-durable/).<br>
 Runs on your own machine or directly on your phone. No cloud VM.
 
-[![Release](https://img.shields.io/github/v/release/nikau-herewini/pi-pocket?color=7aa2f7)](https://github.com/nikau-herewini/pi-pocket/releases)
+[![Rolling main](https://img.shields.io/badge/channel-rolling%20main-7aa2f7)](https://github.com/nikau-herewini/pi-pocket/commits/main/)
 [![Node.js 22.19+](https://img.shields.io/badge/node-%E2%89%A5%2022.19-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![MIT license](https://img.shields.io/badge/license-MIT-ff9e64)](LICENSE)
 
@@ -28,18 +28,15 @@ Runs on your own machine or directly on your phone. No cloud VM.
 
 The [feature tour](docs/features.md) covers everything else, from plan mode and peek tiles to the built-in browser.
 
+## Fork maintenance
+
+This fork tracks `main` through pull requests. It does not maintain its own versions, Git tags, GitHub releases, or npm packages. Identify a build by its commit SHA or container digest. Package versions and API “Since” labels remain upstream metadata, not fork release identifiers. See the [rolling fork policy](docs/releases.md).
+
 ## Quick start
 
 Requires Node.js 22.19 or newer. Runs on Linux, macOS, Windows, and Android (Termux); Linux is the most tested. Sign in to a provider with Pi first (`pi`, then `/login`), or later from the app's Providers sheet.
 
-```bash
-npm install -g pi-pocket
-pi-pocket
-```
-
-Newer npm may print "install-scripts ... not yet covered by allowScripts" for `@google/genai` and `protobufjs`, which come from Pi's model library. The warning is expected: Pi Pocket needs neither script. `npm config set allow-scripts=@google/genai,protobufjs --location=user` quiets it by letting both run, which does no harm.
-
-Or try it with `npx pi-pocket`. To change Pi Pocket's code, run a git checkout instead:
+Run this fork from a source checkout, or use its [published Docker image](docs/docker.md#published-images). `npm install -g pi-pocket` and `npx pi-pocket` install upstream, not this fork.
 
 ```bash
 git clone https://github.com/nikau-herewini/pi-pocket.git
@@ -52,7 +49,7 @@ The launcher asks how your devices should connect, then prints a sign-in link an
 
 While it runs: **q** quit · **r** restart server · **a** change access · **o** open in browser · **s** show QR code.
 
-**Updating:** Menu → **Update Pi Pocket** updates a git checkout run with `npm start`, or a global npm install (`npm install -g pi-pocket`) that your user can write, and restarts. It goes back by itself if the new version does not start ([features](docs/features.md)). A local install (`npm install pi-pocket` in a project) and `npx pi-pocket` do not update from the app: the sheet says what to run, `npm install pi-pocket@latest` or `npx pi-pocket@latest`. By hand: stop the server, back up `~/.pi-pocket`, pull, run `npm install`, and start again; for a global install, run `npm install -g pi-pocket@latest`. If the machine stops at the very moment of the switch, `pi-pocket` may not start; `npm install -g pi-pocket` restores it. Read the [release notes](https://github.com/nikau-herewini/pi-pocket/releases) first: 0.21.0 upgrades the database one way, so going back needs the backup.
+**Updating this fork:** Stop the server, back up its data, review the intervening commits and pull request migration notes, then, from a clean checkout on `main`, run `git pull --ff-only origin main`, `npm ci`, and `npm start`. Record `git rev-parse HEAD` before updating so you know the previous build. For containers, pull and recreate the service ([Docker instructions](docs/docker.md)). Do not use the upstream version/release-based in-app updater to track this fork. Database migrations can require restoring a backup when rolling back; see the [maintenance policy](docs/releases.md).
 
 ### Other ways to run it
 

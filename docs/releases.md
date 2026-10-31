@@ -1,44 +1,35 @@
 # Releases
 
-Pi Pocket ships a stable release every Friday. Between two Fridays, the next release comes out as betas that people can choose to run.
+This fork uses a rolling, commit-based maintenance model. It does not maintain its own semantic versions, Git tags, GitHub releases, release branches, or npm packages.
 
-## The week
+## Identifying a build
 
-| When                    | What happens                                                                                                                                                                                       |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Friday, after a release | The branch of the next release opens: `release/X.Y.0`, from `main`.                                                                                                                                |
-| Saturday to Thursday    | Ready pull requests merge into the release branch. A beta comes out when something worth trying lands.                                                                                             |
-| Thursday, end of day    | Code freeze: from now on, only fixes go into the release branch. The last beta comes out.                                                                                                          |
-| Friday                  | The review and live-test rounds run on the release branch, and their fixes go in. Then the release pull request merges into `main`, and the tag `vX.Y.0` and the GitHub release publish it to npm. |
+- `main` contains the reviewed fork changes. Every change must go through a pull request to `main`, including upstream integrations.
+- Use the full Git commit SHA to identify source code. The [commit history](https://github.com/nikau-herewini/pi-pocket/commits/main/) and merged pull requests are the change log.
+- Versions in `package.json`, `package-lock.json`, API documentation, and the app are inherited upstream metadata. They are not fork release identifiers. Do not bump them for fork changes or remove versions required by tooling.
+- Upstream integrations can change that metadata without creating a fork release. The pristine `upstream` branch mirrors upstream source without syncing Git tags ([upstream integration](../.github/UPSTREAM_SYNC.md)).
 
-A week with nothing to ship has no release. A change that is not ready by the freeze waits for the next week.
+## Publishing
 
-## Versions
+- Docker images publish from `main` as `latest` and `sha-<full-commit-sha>`. These are container image tags, not Git tags or semantic releases.
+- `latest` moves as builds succeed. A SHA image tag records the source commit, but rebuilding that commit can change the image. Pin `@sha256:…` for an immutable deployment ([Docker instructions](docker.md#published-images)).
+- GitHub Pages publishes documentation from `main`. It does not wait for a release or a version bump.
+- The npm publishing workflow is restricted to the upstream repository. This fork's package is marked `private` to prevent accidental npm publication. `npm install -g pi-pocket` and `npx pi-pocket` install upstream, not this fork.
 
-- **A weekly release is a minor version**: 0.26.0, then 0.27.0. Pi Pocket is before 1.0, so a minor version can also change behavior. The notes say so.
-- **A beta is the next release with a number**: `0.27.0-beta.1`, `0.27.0-beta.2`. Its commit is "Version 0.27.0-beta.N", and only `package.json` and `package-lock.json` change in it.
-- **A fix that cannot wait for Friday is a patch release** (0.27.1), from the last release's tag, on any day. It goes into the open release branch too.
+## Updating a source checkout
 
-## Pull requests
+Stop the server and back up its data before updating. Start with a clean checkout: commit or save any local work before switching branches. Review the pull requests between your current commit and the target commit, especially database and compatibility changes.
 
-- Open pull requests against `main`. A maintainer merges a ready one into the open release branch, with a merge commit that names the pull request and its author: `Merge PR #186: … (@Haichiu)`. Your commits keep your name.
-- A maintainer's follow-up commits on a pull request name it too: "Follow-up to PR #186 by @Haichiu".
-- GitHub marks the pull request merged when the release branch merges into `main`.
+```bash
+git rev-parse HEAD       # record the current commit for recovery
+git switch main
+git pull --ff-only origin main
+npm ci
+npm start
+```
 
-## Publishing a beta
+The upstream version/release-based in-app updater is not this fork's update mechanism. Turn off **Look for new versions** under Menu → Extensions → Installed → **Pi Pocket updates** to avoid irrelevant release checks. Use the source procedure above, or pull and recreate a published container. A rollback after a data migration can require restoring the backup as well as the previous code.
 
-1. On the release branch, set the version: `npm version 0.27.0-beta.1 --no-git-tag-version`, then commit "Version 0.27.0-beta.1".
-2. Run `npm run check`, `npm run lint`, and `npm test`.
-3. Push the branch and the tag `v0.27.0-beta.1`.
-4. Make a GitHub release from the tag and mark it as a pre-release. Its notes are short: what is new since the last beta, with credits, written as [release-notes.md](release-notes.md) says.
-5. Publishing the release runs `.github/workflows/publish.yml`. A version with a pre-release part goes to npm's `beta` dist-tag, never to `latest`.
+## Change notes
 
-A pre-release on GitHub is not the repository's latest release, and the version tag of a beta is not a release tag for updates. So people who do not choose betas never get one.
-
-## Running betas
-
-- **From the app**: turn on **Beta updates** in Menu → Extensions → Installed → Pi Pocket updates (since 0.27.0). Menu → Update Pi Pocket then offers betas too, marked **Beta**. Turn it off to wait for the next stable release: the app never offers an older version. With **Install new versions by themselves** on too, betas install by themselves.
-- **A global npm install**: `npm install -g pi-pocket@beta`. Go back with `npm install -g pi-pocket@latest`.
-- **A git checkout**: `git checkout v0.27.0-beta.1`, then `npm install`.
-
-A beta is tested less than a release. Back up `~/.pi-pocket` before you run one: a beta can change stored data one way, and then the version before it cannot read the data.
+Describe user-visible changes, migration steps, and validation in each pull request. Use [release-notes.md](release-notes.md) as the change-note guide; do not create a version bump, tag, or release to accompany a fork change.

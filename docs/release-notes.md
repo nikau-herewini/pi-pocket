@@ -1,8 +1,8 @@
 # Release notes
 
-How to write the notes of a Pi Pocket release. They go in the release pull request's description and, unchanged, in the GitHub release.
+This fork has no versioned releases. Put change notes in each pull request description, not in a GitHub release. [releases.md](releases.md) describes the rolling maintenance policy.
 
-The notes are for people who run Pi Pocket, and some of them read on a phone. Each release answers these questions in this order:
+The notes are for people who run Pi Pocket, and some of them read on a phone. Each change answers these questions in this order:
 
 1. Must I do anything before or after I update?
 2. What is new or better for me?
@@ -14,16 +14,16 @@ The notes are for people who run Pi Pocket, and some of them read on a phone. Ea
 - **Lead with what people get, not with how it works.** "Runs wait out rate limits instead of failing", not "A limit gate wraps `streamSimple`".
 - **One idea per bullet, one sentence after a bold name.** Keep the sentence under about 30 words. If people need more, add at most 3 sub-bullets, or link the docs.
 - **No internal names outside "For theme and extension authors".** File names, functions, classes, and settings keys belong there or in the docs.
-- **Credit at the end of the bullet**, in parentheses: `(#139, by @vitalNohj)`. For an issue that a person reported: `(#131, reported by @vitalNohj)`. Use "Fixes #N" where the release pull request should close the issue.
-- **Leave out empty sections.** A small release can be a few bullets and the update steps.
+- **Credit at the end of the bullet**, in parentheses: `(#139, by @vitalNohj)`. For an issue that a person reported: `(#131, reported by @vitalNohj)`. Use "Fixes #N" where the pull request should close the issue.
+- **Leave out empty sections.** A small change can be a few bullets and the update steps.
 - **Put anything one-way or risky in a `[!WARNING]` alert** at the top. Put needed steps (`npm install`, a restart) in a `[!IMPORTANT]` alert.
-- **The app reads the warning.** Menu → Update Pi Pocket asks the owner to confirm a release whose notes have a `[!WARNING]` or `[!CAUTION]` alert, never installs it by itself, and does not go back from it by itself. So put every step that a person must do by hand, or that cannot be undone, in that alert. Updates run `npm ci` (a git checkout) or `npm install -g` (a global npm install) and restart by themselves. A release must be on the npm registry's `latest` tag for an npm install to take it (a beta is on `beta`, for people who turn on beta updates), and the notes come from the GitHub release of the same version. [releases.md](releases.md) tells when releases and betas come out.
+- **Do not rely on the in-app updater to read these notes.** It follows upstream versions and releases, not this fork's rolling commits. Put manual steps and one-way changes in the pull request's warning, and review them before deploying.
 - **Keep the review story short and folded** in a `<details>` block. Always say what was not tested.
 
 ## The template
 
 ```markdown
-<One or two sentences: what this release is about.>
+<One or two sentences: what this change is about.>
 
 > [!IMPORTANT]
 > **To update:** <the steps, in one line>. Details under [Updating](#updating).
@@ -55,7 +55,7 @@ The notes are for people who run Pi Pocket, and some of them read on a phone. Ea
 2. <Step.>
 
 <details>
-<summary>How this release was checked</summary>
+<summary>How this change was checked</summary>
 
 - <At most 5 bullets: reviews, tests, live use.>
 - **Not tested:** <what was not checked.>
@@ -64,7 +64,7 @@ The notes are for people who run Pi Pocket, and some of them read on a phone. Ea
 
 **Thanks** to <names, with what each one did>.
 
-**Full changes:** https://github.com/nikau-herewini/pi-pocket/compare/vX.Y.Z...vA.B.C
+**Full changes:** https://github.com/nikau-herewini/pi-pocket/compare/<base-commit-sha>...<target-commit-sha>
 ```
 
 ### Sections
@@ -81,4 +81,4 @@ The notes are for people who run Pi Pocket, and some of them read on a phone. Ea
 
 ### The title
 
-`Pi Pocket A.B.C: <2 to 4 headline changes, in plain words>`, under about 80 characters.
+Use a short pull request title that describes the change, under about 80 characters. Do not add a fork version number.

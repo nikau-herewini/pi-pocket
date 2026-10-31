@@ -1,12 +1,15 @@
 ---
-// Starlight's footer, and which version of Pi Pocket the pages describe.
+// Starlight's footer identifies the rolling fork by its source commit.
 import Default from "@astrojs/starlight/components/Footer.astro";
 ---
 
 <Default><slot /></Default>
 <p class="version">
-    These pages describe Pi Pocket {__POCKET_VERSION__}. Your copy has the pages of its own version in its{" "}
-    <code>docs/</code> folder.
+    Rolling fork · <a href={`${__POCKET_GITHUB__}/tree/${__POCKET_REF__}`}>
+        source {__POCKET_REF__.slice(0, 12)}</a
+    >.
+    Upstream package metadata: {__POCKET_VERSION__}, not a fork release version.
+    Your checkout includes its own <code>docs/</code> folder.
 </p>
 
 <style>

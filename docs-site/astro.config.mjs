@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import { satteri } from "@astrojs/markdown-satteri";
-import { idOf, pages, REPO, repoMarkdown, VERSION } from "./src/repo-docs.mjs";
+import { GITHUB, idOf, pages, REF, REPO, repoMarkdown, VERSION } from "./src/repo-docs.mjs";
 import { SIDEBAR } from "./src/sidebar.mjs";
 
 const listed = new Set(SIDEBAR.flatMap((group) => group.items.map(([path]) => path)));
@@ -41,8 +41,12 @@ export default defineConfig({
         processor: satteri({ mdastPlugins: [repoMarkdown] }),
     },
     vite: {
-        // Pages and components get Pi Pocket's version this way: what they import is bundled, away from the repo.
-        define: { __POCKET_VERSION__: JSON.stringify(VERSION) },
+        // Build metadata is injected because bundled components cannot read the source checkout.
+        define: {
+            __POCKET_VERSION__: JSON.stringify(VERSION),
+            __POCKET_REF__: JSON.stringify(REF),
+            __POCKET_GITHUB__: JSON.stringify(GITHUB),
+        },
         server: { fs: { allow: [REPO] } },
     },
     integrations: [
