@@ -16,11 +16,11 @@
     "author": "Tanner Middleton",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/TannerMidd/pi-pocket.git"
+        "url": "git+https://github.com/nikau-herewini/pi-pocket.git"
     },
-    "homepage": "https://tannermidd.github.io/pi-pocket/",
+    "homepage": "https://nikau-herewini.github.io/pi-pocket/",
     "bugs": {
-        "url": "https://github.com/TannerMidd/pi-pocket/issues"
+        "url": "https://github.com/nikau-herewini/pi-pocket/issues"
     },
     "bin": {
         "pi-pocket": "bin/pi-pocket.js"

@@ -64,7 +64,7 @@ The notes are for people who run Pi Pocket, and some of them read on a phone. Ea
 
 **Thanks** to <names, with what each one did>.
 
-**Full changes:** https://github.com/TannerMidd/pi-pocket/compare/vX.Y.Z...vA.B.C
+**Full changes:** https://github.com/nikau-herewini/pi-pocket/compare/vX.Y.Z...vA.B.C
 ```
 
 ### Sections

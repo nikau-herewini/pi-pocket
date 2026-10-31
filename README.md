@@ -7,11 +7,11 @@
 A durable, multiplayer, mobile-first web app for Pi agents, built on [Pi Durable](https://earendil.com/posts/pi-durable/).<br>
 Runs on your own machine or directly on your phone. No cloud VM.
 
-[![Release](https://img.shields.io/github/v/release/TannerMidd/pi-pocket?color=7aa2f7)](https://github.com/TannerMidd/pi-pocket/releases)
+[![Release](https://img.shields.io/github/v/release/nikau-herewini/pi-pocket?color=7aa2f7)](https://github.com/nikau-herewini/pi-pocket/releases)
 [![Node.js 22.19+](https://img.shields.io/badge/node-%E2%89%A5%2022.19-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![MIT license](https://img.shields.io/badge/license-MIT-ff9e64)](LICENSE)
 
-[Website](https://tannermidd.github.io/pi-pocket/) · [Quick start](#quick-start) · [Feature tour](docs/features.md) · [Docs](https://tannermidd.github.io/pi-pocket/docs/)
+[Website](https://nikau-herewini.github.io/pi-pocket/) · [Quick start](#quick-start) · [Feature tour](docs/features.md) · [Docs](https://nikau-herewini.github.io/pi-pocket/docs/)
 
 <img src="docs/showcase-0.12.1.png" alt="Pi Pocket in the Tokyo Night theme, on a desktop and a phone. On the desktop, the session list beside a conversation where Pi has fixed a sign-in redirect loop, its edits and a passing run of 48 tests folded into a timeline. On the phone, the same session after a teammate, Alex, asks for the push: Lancet Guard waits for approval before git push." width="100%">
 
@@ -42,7 +42,7 @@ Newer npm may print "install-scripts ... not yet covered by allowScripts" for `@
 Or try it with `npx pi-pocket`. To change Pi Pocket's code, run a git checkout instead:
 
 ```bash
-git clone https://github.com/TannerMidd/pi-pocket.git
+git clone https://github.com/nikau-herewini/pi-pocket.git
 cd pi-pocket
 npm install
 npm start
@@ -52,19 +52,19 @@ The launcher asks how your devices should connect, then prints a sign-in link an
 
 While it runs: **q** quit · **r** restart server · **a** change access · **o** open in browser · **s** show QR code.
 
-**Updating:** Menu → **Update Pi Pocket** updates a git checkout run with `npm start`, or a global npm install (`npm install -g pi-pocket`) that your user can write, and restarts. It goes back by itself if the new version does not start ([features](docs/features.md)). A local install (`npm install pi-pocket` in a project) and `npx pi-pocket` do not update from the app: the sheet says what to run, `npm install pi-pocket@latest` or `npx pi-pocket@latest`. By hand: stop the server, back up `~/.pi-pocket`, pull, run `npm install`, and start again; for a global install, run `npm install -g pi-pocket@latest`. If the machine stops at the very moment of the switch, `pi-pocket` may not start; `npm install -g pi-pocket` restores it. Read the [release notes](https://github.com/TannerMidd/pi-pocket/releases) first: 0.21.0 upgrades the database one way, so going back needs the backup.
+**Updating:** Menu → **Update Pi Pocket** updates a git checkout run with `npm start`, or a global npm install (`npm install -g pi-pocket`) that your user can write, and restarts. It goes back by itself if the new version does not start ([features](docs/features.md)). A local install (`npm install pi-pocket` in a project) and `npx pi-pocket` do not update from the app: the sheet says what to run, `npm install pi-pocket@latest` or `npx pi-pocket@latest`. By hand: stop the server, back up `~/.pi-pocket`, pull, run `npm install`, and start again; for a global install, run `npm install -g pi-pocket@latest`. If the machine stops at the very moment of the switch, `pi-pocket` may not start; `npm install -g pi-pocket` restores it. Read the [release notes](https://github.com/nikau-herewini/pi-pocket/releases) first: 0.21.0 upgrades the database one way, so going back needs the backup.
 
 ### Other ways to run it
 
 - **Docker or Podman:** `docker compose up -d --build`. See [docs/docker.md](docs/docker.md).
-- **Nix:** `nix run github:TannerMidd/pi-pocket`, or the NixOS module `services.pi-pocket.enable = true;` ([nix/module.nix](nix/module.nix)).
+- **Nix:** `nix run github:nikau-herewini/pi-pocket`, or the NixOS module `services.pi-pocket.enable = true;` ([nix/module.nix](nix/module.nix)).
 - **Android (Termux):**
 
     ```bash
     pkg update && pkg upgrade && pkg install nodejs git
     npm install -g --ignore-scripts @earendil-works/pi-coding-agent
     pi    # /login, then quit
-    git clone https://github.com/TannerMidd/pi-pocket.git
+    git clone https://github.com/nikau-herewini/pi-pocket.git
     cd pi-pocket && npm install --ignore-scripts && termux-wake-lock && npm start
     ```
 
@@ -89,8 +89,8 @@ Other options: `--port` (8787), `--cwd`, `--data` (`~/.pi-pocket`), `--host`, an
 ## Documentation
 
 - [Feature tour](docs/features.md): every feature, in full.
-- [Docs site](https://tannermidd.github.io/pi-pocket/docs/): customizing Pi without code, and writing extensions.
-- [Engineering](https://tannermidd.github.io/pi-pocket/engineering.html) and [code map](docs/map.md): how Pi Pocket is built.
+- [Docs site](https://nikau-herewini.github.io/pi-pocket/docs/): customizing Pi without code, and writing extensions.
+- [Engineering](https://nikau-herewini.github.io/pi-pocket/engineering.html) and [code map](docs/map.md): how Pi Pocket is built.
 
 ## Development
 

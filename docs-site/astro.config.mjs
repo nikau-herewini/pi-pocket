@@ -1,4 +1,4 @@
-// Pi Pocket's docs: Starlight, at https://tannermidd.github.io/pi-pocket/docs/, beside the product site (site/).
+// Pi Pocket's docs: Starlight, at https://nikau-herewini.github.io/pi-pocket/docs/, beside the product site (site/).
 import { copyFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { defineConfig } from "astro/config";
@@ -33,7 +33,7 @@ const sidebar = SIDEBAR.map(({ label, collapsed, items }) => ({
 }));
 
 export default defineConfig({
-    site: "https://tannermidd.github.io",
+    site: "https://nikau-herewini.github.io",
     base: "/pi-pocket/docs",
     trailingSlash: "always",
     devToolbar: { enabled: false },
@@ -69,7 +69,7 @@ export default defineConfig({
                 {
                     icon: "github",
                     label: "GitHub",
-                    href: "https://github.com/TannerMidd/pi-pocket",
+                    href: "https://github.com/nikau-herewini/pi-pocket",
                 },
             ],
             components: {
