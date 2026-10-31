@@ -48,7 +48,7 @@ A drop-in extension stays when Pi Pocket updates, and the owner can turn it off 
 - [release-notes.md](release-notes.md): how to write the notes of a release.
 - [../SECURITY.md](../SECURITY.md): what Pi Pocket protects, and what it does not.
 
-The same pages are on the web, with search: https://tannermidd.github.io/pi-pocket/docs/.
+The same pages are on the web, with search: https://nikau-herewini.github.io/pi-pocket/docs/.
 
 ## Before you change anything
 

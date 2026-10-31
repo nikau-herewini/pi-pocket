@@ -1,4 +1,4 @@
-# Publishes the product site (site/) at https://tannermidd.github.io/pi-pocket/ and the docs (docs-site/, built
+# Publishes the product site (site/) at https://nikau-herewini.github.io/pi-pocket/ and the docs (docs-site/, built
 # from docs/ where it is) at /pi-pocket/docs/, as one GitHub Pages deployment, from main only. main gets only
 # releases and site changes, so the docs describe the latest release. A run by hand (npm run site:publish, or
 # gh workflow run pages.yml) publishes main again.
