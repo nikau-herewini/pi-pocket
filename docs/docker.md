@@ -4,7 +4,7 @@ Pi Pocket runs from its source with Node.js, so the container is thin: Node, Chr
 
 The image includes [`forgejo-cli`](https://codeberg.org/forgejo-contrib/forgejo-cli)
 v0.7.0 as `fj` for Forgejo pull requests, issues, and repository operations alongside
-Git. A separate Rust build stage compiles it for amd64 and arm64 against Debian
+Git. A separate Rust build stage compiles it natively for amd64 against Debian
 Bookworm, because the official prebuilt binaries need a newer glibc. The build
 verifies the pinned source archive's SHA-256, uses `cargo build --locked`, and runs
 `fj version` in both the builder and runtime images. No Rust toolchain enters the
@@ -55,7 +55,15 @@ The fork at `nikau-herewini/pi-pocket` publishes to GitHub Container Registry on
 
 This is a rolling fork with no semantic-version image tags, Git tags, or GitHub releases. The container tags below identify the moving channel and source commit; they are not fork release versions.
 
-Images support `linux/amd64` and `linux/arm64`:
+Published images and Docker smoke tests currently support **`linux/amd64` only**.
+ARM64 publication is paused: compiling the Forgejo client through QEMU exceeded
+the publication timeout. ARM64 hosts, including native Apple Silicon Docker,
+are not a supported deployment target for new images. Existing multi-platform
+commit images remain available by their old tags and digests, but do not include
+new changes. The `latest` tag moves to an AMD64-only image when the next build
+succeeds; an old ARM64 container does not receive an ARM64 update from that tag.
+
+Image tags:
 
 - `ghcr.io/nikau-herewini/pi-pocket:latest` tracks the most recently published `main` build, not an upstream release.
 - `ghcr.io/nikau-herewini/pi-pocket:sha-<full-commit-sha>` identifies a source commit. For an immutable deployment, pin the image digest (`@sha256:…`), since rerunning a build can update a tag.
