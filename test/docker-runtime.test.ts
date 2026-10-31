@@ -60,6 +60,25 @@ test("the Forgejo client builds pinned source against the runtime's Debian relea
     assert.equal(syntax.status, 0, syntax.stderr);
 });
 
+test("publication and smoke tests target native AMD64 only", () => {
+    const publish = source(".github/workflows/docker-publish.yml");
+    const smoke = source(".github/workflows/docker-check.yml");
+
+    for (const workflow of [publish, smoke]) {
+        assert.match(workflow, /runs-on: ubuntu-latest/);
+        assert.match(workflow, /platforms: linux\/amd64/);
+        assert.doesNotMatch(workflow, /setup-qemu-action|linux\/arm64|ubuntu-24\.04-arm/);
+        assert.doesNotMatch(workflow, /matrix\./);
+    }
+
+    assert.match(publish, /push: true/);
+    assert.match(publish, /scope=docker-publish-amd64/);
+    assert.match(smoke, /scope=docker-check-amd64/);
+    assert.match(publish, /type=sha,format=long,prefix=sha-/);
+    assert.match(publish, /type=raw,value=latest/);
+    assert.match(source("docs/docker.md"), /linux\/amd64` only/);
+});
+
 test("Docker guide shell examples have valid syntax", () => {
     const examples = [...source("docs/docker.md").matchAll(/```bash\n([\s\S]*?)```/g)];
 

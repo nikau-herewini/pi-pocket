@@ -9,7 +9,7 @@
 #   docker build -f docker/Dockerfile -t pi-pocket .
 
 # Build the pinned Forgejo client against the same glibc as the runtime.
-# This stage follows the target platform for native amd64 and arm64 CI builds.
+# Published images target linux/amd64 and compile this stage natively.
 FROM rust:1.94.0-bookworm AS forgejo-cli
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl pkg-config libssl-dev \

@@ -26,9 +26,6 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Set up QEMU
-              uses: docker/setup-qemu-action@v3
-
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
 
@@ -48,14 +45,16 @@ jobs:
                       type=raw,value=latest
                       type=sha,format=long,prefix=sha-
 
-            - name: Build and publish
+            # ARM64 publication is paused. Compile the client natively instead
+            # of spending the publication timeout in an emulated Rust build.
+            - name: Build and publish the AMD64 image
               uses: docker/build-push-action@v6
               with:
                   context: .
                   file: docker/Dockerfile
-                  platforms: linux/amd64,linux/arm64
+                  platforms: linux/amd64
                   push: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
-                  cache-from: type=gha
-                  cache-to: type=gha,mode=max
+                  cache-from: type=gha,scope=docker-publish-amd64
+                  cache-to: type=gha,mode=max,scope=docker-publish-amd64
