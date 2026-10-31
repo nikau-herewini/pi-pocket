@@ -1,9 +1,28 @@
 /** The DevTools protocol over a pipe, and the Chromium process at the other end of it. */
 import { type ChildProcess, spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import type { Readable, Writable } from "node:stream";
 
 export class BrowserError extends Error {}
+
+/**
+ * Chromium's environment: the server's, with its config and cache folders inside its profile. Chromium keeps its crash
+ * reports under `~/.config/chromium`, and aborts as it starts when it cannot make that folder: in a container where
+ * `~/.config` was made by root (a mount below it, such as `~/.config/gh`), every launch would fail.
+ */
+export function launchEnv(
+    profile: string,
+    env: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+    const config = join(profile, "xdg-config");
+    const cache = join(profile, "xdg-cache");
+
+    mkdirSync(config, { recursive: true, mode: 0o700 });
+    mkdirSync(cache, { recursive: true, mode: 0o700 });
+
+    return { ...env, XDG_CONFIG_HOME: config, XDG_CACHE_HOME: cache };
+}
 
 /** A DevTools protocol message: untyped JSON, read field by field where it arrives. */
 export type Json = any;
@@ -202,6 +221,7 @@ export class Chromium {
             [...LAUNCH_ARGS, `--user-data-dir=${profile}`, ...extra, "about:blank"],
             {
                 stdio: ["ignore", "ignore", "pipe", "pipe", "pipe"],
+                env: launchEnv(profile),
             },
         );
         let stderr = "";
