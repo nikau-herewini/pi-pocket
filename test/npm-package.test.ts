@@ -2,7 +2,15 @@
 // install puts its packages in a node_modules folder above it.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+    copyFileSync,
+    existsSync,
+    mkdirSync,
+    mkdtempSync,
+    readFileSync,
+    rmSync,
+    writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -62,32 +70,26 @@ test("modulesWith finds packages that npm put in a node_modules folder above Pi 
     assert.equal(modulesWith("missing", app), own);
 });
 
-// `files` in package.json says what npm packs. Read here, not with `npm pack`, which tests in a sandbox may not run.
-test("the npm package has what Pi Pocket runs and reads, and not its tests", () => {
-    const { files } = JSON.parse(readFileSync(new URL("package.json", ROOT), "utf8")) as {
-        files: string[];
-    };
-    const packed = (path: string) =>
-        files.some((entry) => (entry.endsWith("/") ? path.startsWith(entry) : path === entry));
+test("the rolling fork has no npm publishing configuration", () => {
+    const manifest = JSON.parse(readFileSync(new URL("package.json", ROOT), "utf8"));
 
-    for (const needed of [
-        "bin/pi-pocket.js",
-        "bin/strip-types.js",
-        "src/launcher/main.ts",
-        "src/server/main.ts",
-        "web/index.html",
-        "types/pocket.d.ts",
-        "docs/index.md",
-        "AGENTS.md",
-        // The lockfile that prepack copies, so npm installs the very packages the checkout has.
-        "npm-shrinkwrap.json",
+    assert.equal(manifest.private, true);
+    assert.equal(manifest.files, undefined);
+    assert.equal(manifest.publishConfig, undefined);
+
+    for (const hook of [
+        "prepack",
+        "postpack",
+        "prepublish",
+        "prepublishOnly",
+        "publish",
+        "postpublish",
     ]) {
-        assert.ok(packed(needed), `${needed} is missing from the package`);
+        assert.equal(manifest.scripts?.[hook], undefined, `${hook} must not return`);
     }
 
-    for (const left of ["test/app.test.ts", "site/index.html", "docs-site/package.json"]) {
-        assert.ok(!packed(left), `${left} is in the package`);
-    }
+    assert.equal(existsSync(new URL(".github/workflows/publish.yml", ROOT)), false);
+    assert.equal(existsSync(new URL("npm-shrinkwrap.json", ROOT)), false);
 });
 
 test("drop-ins can import dependencies split between nested and hoisted folders", (t) => {

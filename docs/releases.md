@@ -14,7 +14,7 @@ This fork uses a rolling, commit-based maintenance model. It does not maintain i
 - Docker images publish from `main` as `latest` and `sha-<full-commit-sha>`. These are container image tags, not Git tags or semantic releases.
 - `latest` moves as builds succeed. A SHA image tag records the source commit, but rebuilding that commit can change the image. Pin `@sha256:…` for an immutable deployment ([Docker instructions](docker.md#published-images)).
 - GitHub Pages publishes documentation from `main`. It does not wait for a release or a version bump.
-- The npm publishing workflow is restricted to the upstream repository. This fork's package is marked `private` to prevent accidental npm publication. `npm install -g pi-pocket` and `npx pi-pocket` install upstream, not this fork.
+- This fork has no npm publishing workflow, packaging allowlist, or pack/publish lifecycle hooks. Its package stays `private` to prevent accidental npm publication. `npm install -g pi-pocket` and `npx pi-pocket` install upstream, not this fork.
 
 ## Updating a source checkout
 
