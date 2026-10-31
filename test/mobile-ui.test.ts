@@ -1116,7 +1116,12 @@ test(
     async (t) => {
         const WIDTH = 844;
         const NOTCH = 47;
-        const chrome = await Chromium.launch(chromium!, mkdtempSync(join(root, "insets-")), []);
+        // The arguments the app adds, as a container needs (`--no-sandbox`).
+        const chrome = await Chromium.launch(
+            chromium!,
+            mkdtempSync(join(root, "insets-")),
+            process.env.PI_POCKET_BROWSER_ARGS?.split(/\s+/).filter(Boolean) ?? [],
+        );
 
         t.after(() => chrome.kill());
 
