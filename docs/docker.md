@@ -28,6 +28,32 @@ Stop it with `docker compose down` or `podman compose down`. `down -v` is not ne
 
 The container's entrypoint clears Chromium's stale `Singleton*` locks in `./data/browser/profile`. Without that, a recreated container can refuse to start the embedded browser, because the old locks name the previous container.
 
+## Published images
+
+The fork at `nikau-herewini/pi-pocket` publishes to GitHub Container Registry on every push to `main`. Maintainers can also run **Publish Docker image** manually from the Actions tab on `main`. The workflow uses the repository's `GITHUB_TOKEN` with `packages: write`; no registry password secret is needed.
+
+Images support `linux/amd64` and `linux/arm64`:
+
+- `ghcr.io/nikau-herewini/pi-pocket:latest` tracks the most recently published `main` build, not an upstream release.
+- `ghcr.io/nikau-herewini/pi-pocket:sha-<full-commit-sha>` identifies a source commit. For an immutable deployment, pin the image digest (`@sha256:…`), since rerunning a build can update a tag.
+
+After the first publish, a maintainer must check the package's visibility in GitHub's package settings. Make it public for anonymous pulls, or authenticate with a token that has `read:packages` for private pulls.
+
+To use a published image with the same ports, environment, and mounts, replace the service's `build:` block and `image: pi-pocket:local` in `docker-compose.yml` with:
+
+```yaml
+image: ghcr.io/nikau-herewini/pi-pocket:latest
+```
+
+Then start or update without a local build:
+
+```bash
+docker compose pull
+docker compose up -d --no-build
+```
+
+The workflow only publishes from this fork's `main` branch. It does not publish from pull requests, other branches, or upstream releases.
+
 ## Folders from the host
 
 Every folder that matters is a bind mount, so it stays outside the container and outside the image. Change the left-hand side in `.env` to use a folder anywhere on the host.
