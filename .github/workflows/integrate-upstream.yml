@@ -1,0 +1,128 @@
+# workflow_run works even when the mirror push uses GITHUB_TOKEN.
+name: Propose upstream integration
+
+on:
+    workflow_run:
+        workflows: [Sync upstream mirror]
+        branches: [main]
+        types: [completed]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: propose-upstream-integration
+    cancel-in-progress: false
+
+jobs:
+    propose:
+        if: >-
+            github.repository == 'nikau-herewini/pi-pocket' &&
+            github.ref == 'refs/heads/main' &&
+            (github.event_name == 'workflow_dispatch' ||
+            (github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.repository.full_name == github.repository))
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        permissions:
+            contents: read
+            pull-requests: write
+        outputs:
+            changed: ${{ steps.pr.outputs.changed }}
+            base: ${{ steps.pr.outputs.base }}
+            head: ${{ steps.pr.outputs.head }}
+        steps:
+            # API operations only: never execute repository code with this write token.
+            - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea9 # v7
+              id: pr
+              with:
+                  script: |
+                      const { owner, repo } = context.repo;
+                      const [{ data: baseBranch }, { data: headBranch }] = await Promise.all([
+                          github.rest.repos.getBranch({ owner, repo, branch: 'main' }),
+                          github.rest.repos.getBranch({ owner, repo, branch: 'upstream' })
+                      ]);
+                      const base = baseBranch.commit.sha;
+                      const head = headBranch.commit.sha;
+                      const { data: comparison } = await github.rest.repos.compareCommitsWithBasehead({
+                          owner, repo, basehead: `${base}...${head}`
+                      });
+                      const changed = comparison.ahead_by > 0;
+                      core.setOutput('changed', String(changed));
+                      if (!changed) {
+                          await core.summary.addRaw('No upstream changes to integrate.').write();
+                          return;
+                      }
+                      core.setOutput('base', base);
+                      core.setOutput('head', head);
+                      const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const body = [
+                          'Integrate the original project changes from our `upstream` mirror into `main`.',
+                          '',
+                          `Validation run: ${run}`,
+                          `Base SHA: \`${base}\``,
+                          `Upstream SHA: \`${head}\``,
+                          '',
+                          'Validation runs after this PR is opened. A PR is not proof that checks passed.',
+                          'Before merging, confirm that the linked validation succeeds and both SHAs still match the branches.',
+                          'If either branch changes, run **Propose upstream integration** again on `main`.',
+                          '',
+                          '**Use Create a merge commit. Do not squash or rebase:** preserve upstream ancestry.',
+                          'This workflow does not merge or approve the PR.'
+                      ].join('\n');
+                      const { data: existing } = await github.rest.pulls.list({
+                          owner, repo, state: 'open', base: 'main', head: `${owner}:upstream`
+                      });
+                      const pull = existing.length
+                          ? await github.rest.pulls.update({ owner, repo, pull_number: existing[0].number, body })
+                          : await github.rest.pulls.create({
+                              owner, repo, base: 'main', head: 'upstream',
+                              title: 'Sync original project changes into main', body
+                          });
+                      await core.summary.addLink('Integration PR', pull.data.html_url).write();
+
+    validate:
+        needs: propose
+        if: needs.propose.outputs.changed == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ needs.propose.outputs.base }}
+                  fetch-depth: 1
+                  fetch-tags: false
+                  persist-credentials: false
+            - name: Merge the exact upstream revision for validation only
+              env:
+                  BASE_SHA: ${{ needs.propose.outputs.base }}
+                  HEAD_SHA: ${{ needs.propose.outputs.head }}
+              run: |
+                  set -euo pipefail
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  git fetch --no-tags --unshallow origin "$BASE_SHA" "$HEAD_SHA"
+                  git merge --no-edit --no-ff "$HEAD_SHA"
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+            - name: Install browser test prerequisites
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y fontconfig
+                  # GitHub-hosted Ubuntu includes a non-snap Google Chrome.
+                  google-chrome --version
+                  echo "PI_POCKET_BROWSER=$(command -v google-chrome)" >> "$GITHUB_ENV"
+            - run: npm ci
+            - run: npm run check
+            - run: npm run lint
+            - run: npm test
+            - name: Record successful validation
+              env:
+                  BASE_SHA: ${{ needs.propose.outputs.base }}
+                  HEAD_SHA: ${{ needs.propose.outputs.head }}
+              run: |
+                  echo "Validated base $BASE_SHA with upstream $HEAD_SHA." >> "$GITHUB_STEP_SUMMARY"

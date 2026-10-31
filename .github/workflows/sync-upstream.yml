@@ -1,0 +1,46 @@
+# This file lives on our main branch, not on the untouched upstream mirror.
+name: Sync upstream mirror
+
+on:
+    schedule:
+        - cron: "23 3 * * *"
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+concurrency:
+    group: sync-upstream-mirror
+    cancel-in-progress: false
+
+jobs:
+    sync:
+        if: github.repository == 'nikau-herewini/pi-pocket' && github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: upstream
+                  fetch-depth: 1
+                  fetch-tags: false
+                  persist-credentials: false
+            - name: Fast-forward the mirror without tags or force
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  set -euo pipefail
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  # Full-depth checkout fetches tags even with fetch-tags: false.
+                  git fetch --no-tags --unshallow origin refs/heads/upstream
+                  git fetch --no-tags https://github.com/TannerMidd/pi-pocket.git refs/heads/main
+                  target="$(git rev-parse FETCH_HEAD)"
+                  # Also reject an upstream rewind, which merge --ff-only alone accepts.
+                  git merge-base --is-ancestor HEAD "$target"
+                  git merge --ff-only "$target"
+                  test "$(git rev-parse HEAD)" = "$target"
+                  git -c credential.helper= \
+                      -c 'credential.helper=!gh auth git-credential' \
+                      push origin HEAD:refs/heads/upstream
+                  echo "Mirror synced to $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
