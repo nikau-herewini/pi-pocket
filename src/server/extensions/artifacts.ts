@@ -574,7 +574,7 @@ const bundleParameters = {
             }),
             {
                 description:
-                    "Files the page loads by relative URL (images, fonts, data, scripts, pages), added or replaced by name; earlier ones stay. Up to 64 MB (64,000,000 bytes) each, 128 MB (128,000,000 bytes) per version.",
+                    "Bundle files by relative URL; add or replace by name, retaining others. Up to 64,000,000 bytes each and 128,000,000 bytes per version.",
             },
         ),
     ),
