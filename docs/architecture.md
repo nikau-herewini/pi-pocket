@@ -22,6 +22,8 @@ Some state lives in this process alone, and a restart forgets it. For example:
 - provider sign-ins in progress;
 - the edit and write calls Changes found in each session's history, so a look reads only the entries added since.
 
+Artifact assets are immutable content-hash documents with base64 bytes. Publishing reads local files in chunks of at most 64 KiB, checks the per-file byte limit even if a file grows, and checks the final manifest including inherited assets before committing. A version permits 200 assets, up to 64,000,000 bytes each and 128,000,000 bytes together; page content stays limited to 2,000,000 bytes. Base64 storage and complete bundle readers still hold large payloads in memory, so these byte limits are not process-memory limits. Asset sandboxing and access checks do not depend on these sizes.
+
 ## Who owns what
 
 `PocketApp` (`app.ts`) creates the app's parts and hands each one the app.

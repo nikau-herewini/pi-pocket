@@ -31,8 +31,8 @@ import { assetName, assetType } from "../http/artifact-assets.ts";
 import { expandHome } from "../paths.ts";
 
 export const MAX_BYTES = 2_000_000;
-export const MAX_ASSET_BYTES = 5_000_000;
-export const MAX_ASSETS_BYTES = 20_000_000;
+export const MAX_ASSET_BYTES = 64_000_000;
+export const MAX_ASSETS_BYTES = 128_000_000;
 export const MAX_ASSETS = 200;
 
 export function slugify(value: string): string {
@@ -62,12 +62,19 @@ async function readFileBytes(path: string, limit: number): Promise<Buffer> {
             throw new Error(`Files are limited to ${limit} bytes.`);
         }
 
-        // Read at most one byte beyond the limit, even when the file grows after stat.
-        const buffer = Buffer.alloc(limit + 1);
+        // Read bounded chunks, including at most one byte beyond the limit if the file
+        // grows after stat. Tiny files must not allocate the whole per-asset limit.
+        const chunks: Buffer[] = [];
         let size = 0;
 
         while (true) {
-            const { bytesRead } = await handle.read(buffer, size, buffer.length - size, null);
+            const length = Math.min(
+                64 * 1024,
+                limit + 1 - size,
+                size === 0 ? Math.max(1, info.size + 1) : Infinity,
+            );
+            const buffer = Buffer.allocUnsafe(length);
+            const { bytesRead } = await handle.read(buffer, 0, length, null);
 
             if (bytesRead === 0) {
                 break;
@@ -78,10 +85,12 @@ async function readFileBytes(path: string, limit: number): Promise<Buffer> {
             if (size > limit) {
                 throw new Error(`Files are limited to ${limit} bytes.`);
             }
+
+            chunks.push(buffer.subarray(0, bytesRead));
         }
 
-        // Do not retain the full limit-sized backing allocation for each small bundle file.
-        return Buffer.from(buffer.subarray(0, size));
+        // Copy only initialized bytes and release spare capacity in the final chunk.
+        return Buffer.concat(chunks, size);
     } finally {
         await handle.close();
     }
@@ -565,7 +574,7 @@ const bundleParameters = {
             }),
             {
                 description:
-                    "Files the page loads by relative URL (images, fonts, data, scripts, pages), added or replaced by name; earlier ones stay. Up to 5 MB each, 20 MB per version.",
+                    "Bundle files by relative URL; add or replace by name, retaining others. Up to 64,000,000 bytes each and 128,000,000 bytes per version.",
             },
         ),
     ),

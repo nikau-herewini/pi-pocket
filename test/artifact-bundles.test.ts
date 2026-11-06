@@ -12,18 +12,30 @@ import {
     work,
 } from "./helpers.ts";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import {
+    type Stats,
+    closeSync,
+    ftruncateSync,
+    mkdtempSync,
+    openSync,
+    symlinkSync,
+    writeFileSync,
+    writeSync,
+} from "node:fs";
+import { open, type FileHandle } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
-import { after, before, test } from "node:test";
+import { after, before, mock, test } from "node:test";
 import type { ConversationId } from "@earendil-works/pi-durable";
 import { ArtifactAssetDoc } from "../src/server/docs.ts";
 import { Browsers } from "../src/server/browser.ts";
 import { findBrowser } from "../src/server/browser/discovery.ts";
 import createArtifacts, {
+    MAX_BYTES,
     MAX_ASSET_BYTES,
     MAX_ASSETS_BYTES,
+    MAX_ASSETS,
 } from "../src/server/extensions/artifacts.ts";
 import type { PocketHost } from "../src/server/host.ts";
 import { assetName, assetType, assetRoot, assetUser } from "../src/server/http/artifact-assets.ts";
@@ -195,8 +207,12 @@ test("limits and invalid sources fail without publishing a partial version", asy
             ],
         }),
     );
+    // UTF-8 size, not character count: this is exactly one byte over the limit.
     await assert.rejects(
-        publish({ ...common, assets: [{ name: "x", content: "x".repeat(MAX_ASSET_BYTES + 1) }] }),
+        publish({
+            ...common,
+            assets: [{ name: "x", content: "é".repeat(MAX_ASSET_BYTES / 2) + "x" }],
+        }),
         /limited/,
     );
     await assert.rejects(
@@ -219,19 +235,72 @@ test("limits and invalid sources fail without publishing a partial version", asy
         publish({ ...common, assets: [{ name: "dir", path: dir }] }),
         /regular file/,
     );
+    const oversize = join(dir, "oversize.bin");
+    const descriptor = openSync(oversize, "w");
+
+    try {
+        // A sparse file exercises stat rejection without a large allocation.
+        ftruncateSync(descriptor, MAX_ASSET_BYTES + 1);
+    } finally {
+        closeSync(descriptor);
+    }
+
+    await assert.rejects(
+        publish({ ...common, assets: [{ name: "oversize.bin", path: oversize }] }),
+        /limited to 64000000 bytes/,
+    );
     await assert.rejects(app.artifactBundle(session, "invalid"), /No such artifact/);
-    assert.equal(MAX_ASSETS_BYTES, 20_000_000);
+    assert.equal(MAX_BYTES, 2_000_000);
+    assert.equal(MAX_ASSET_BYTES, 64_000_000);
+    assert.equal(MAX_ASSETS_BYTES, 128_000_000);
+    assert.equal(MAX_ASSETS, 200);
 });
 
-test("version byte and count limits include retained assets", async () => {
-    const content = "x".repeat(MAX_ASSET_BYTES);
+test("64 MB UTF-8 and file boundaries; inherited aggregate replacement and removal are atomic", async (t) => {
+    const content = "é".repeat(MAX_ASSET_BYTES / 2);
+    const dir = mkdtempSync(join(work, "boundary-"));
+    const path = join(dir, "boundary.bin");
+    const descriptor = openSync(path, "w");
+    const chunk = Buffer.from("é".repeat(32 * 1024));
 
+    try {
+        for (let offset = 0; offset < MAX_ASSET_BYTES; offset += chunk.length) {
+            writeSync(descriptor, chunk, 0, Math.min(chunk.length, MAX_ASSET_BYTES - offset));
+        }
+    } finally {
+        closeSync(descriptor);
+    }
+
+    const started = performance.now();
+    const rssBefore = process.memoryUsage().rss;
+
+    // Both inputs contain the same bytes, so storage deduplicates the large body.
+    // The manifest must still count both names towards the aggregate limit.
     await publish({
         id: "limits",
         title: "Limits",
         content: "<p>limits</p>",
-        assets: Array.from({ length: 4 }, (_, i) => ({ name: `${i}.bin`, content })),
+        assets: [
+            { name: "0.bin", path },
+            { name: "1.bin", content },
+        ],
     });
+    const published = performance.now();
+    const found = await app.artifactAsset(session, "limits", 1, "0.bin");
+
+    assert.equal(found.bytes.length, MAX_ASSET_BYTES);
+    assert.equal(found.bytes.subarray(0, 2).toString("utf8"), "é");
+    assert.equal(found.bytes.subarray(-2).toString("utf8"), "é");
+    t.diagnostic(
+        JSON.stringify({
+            assetBytes: MAX_ASSET_BYTES,
+            publishMs: Math.round(published - started),
+            readMs: Math.round(performance.now() - published),
+            rssBeforeMiB: Math.round(rssBefore / 1024 ** 2),
+            rssAfterMiB: Math.round(process.memoryUsage().rss / 1024 ** 2),
+            peakRssMiB: Math.round(process.resourceUsage().maxRSS / 1024),
+        }),
+    );
     await assert.rejects(
         publish({
             id: "limits",
@@ -242,6 +311,13 @@ test("version byte and count limits include retained assets", async () => {
         /limited/,
     );
     assert.equal((await app.artifactBody(session, "limits")).version, 1);
+    // Replacing a name at the exact aggregate boundary does not add its old size.
+    await publish({
+        id: "limits",
+        title: "Limits",
+        content: "<p>limits</p>",
+        assets: [{ name: "0.bin", content }],
+    });
     await publish({
         id: "limits",
         title: "Limits",
@@ -249,13 +325,48 @@ test("version byte and count limits include retained assets", async () => {
         removeAssets: ["0.bin"],
         assets: [{ name: "replacement.bin", content }],
     });
+    const body = await app.artifactBody(session, "limits");
+    const manifest = body.meta.versions.at(-1)!.assets!;
+
+    assert.equal(body.version, 3);
+    assert.deepEqual(Object.keys(manifest).sort(), ["1.bin", "replacement.bin"]);
     assert.equal(
-        (await app.artifactBundle(session, "limits")).assets.reduce(
-            (size, asset) => size + asset.bytes.length,
-            0,
-        ),
+        Object.values(manifest).reduce((size, asset) => size + asset.size, 0),
         MAX_ASSETS_BYTES,
     );
+    await assert.rejects(
+        publish({
+            id: "limits",
+            title: "Must not commit",
+            content: "<p>changed</p>",
+            assets: [{ name: "replacement.bin", content: content + "x" }],
+            removeAssets: ["1.bin"],
+        }),
+        /limited/,
+    );
+    assert.equal((await app.artifactBody(session, "limits")).version, 3);
+    assert.equal((await app.artifactBody(session, "limits")).meta.title, "Limits");
+    assert.equal((await app.artifactBody(session, "limits")).content, "<p>limits</p>");
+    await publish({
+        id: "limits",
+        title: "Limits",
+        content: "<p>limits</p>",
+        removeAssets: ["1.bin"],
+    });
+    assert.equal(
+        Object.keys((await app.artifactBody(session, "limits")).meta.versions.at(-1)!.assets!)
+            .length,
+        1,
+    );
+});
+
+test("page and asset count limits stay unchanged", async () => {
+    await publish({ id: "page-limit", title: "Page", content: "é".repeat(MAX_BYTES / 2) });
+    await assert.rejects(
+        publish({ id: "page-limit", title: "Page", content: "é".repeat(MAX_BYTES / 2) + "x" }),
+        /limited/,
+    );
+    assert.equal((await app.artifactBody(session, "page-limit")).version, 1);
     await publish({
         id: "counts",
         title: "Counts",
@@ -270,6 +381,191 @@ test("version byte and count limits include retained assets", async () => {
             assets: [{ name: "overflow.txt", content: "" }],
         }),
         /at most/,
+    );
+});
+
+test("tiny file assets use bounded allocations, not one full-limit buffer per file", async () => {
+    const dir = mkdtempSync(join(work, "tiny-assets-"));
+    const path = join(dir, "tiny.bin");
+
+    writeFileSync(path, Buffer.from([0, 1, 2, 255]));
+    const alloc = Buffer.alloc;
+    const allocUnsafe = Buffer.allocUnsafe;
+    const checkedAlloc = mock.method(
+        Buffer,
+        "alloc",
+        (size: number, fill?: number | string | Uint8Array, encoding?: BufferEncoding) => {
+            assert.ok(size <= 1024 * 1024, `Unexpected allocation for tiny assets: ${size}`);
+
+            return alloc(size, fill, encoding);
+        },
+    );
+    const checkedUnsafe = mock.method(Buffer, "allocUnsafe", (size: number) => {
+        assert.ok(size <= 1024 * 1024, `Unexpected allocation for tiny assets: ${size}`);
+
+        return allocUnsafe(size);
+    });
+
+    try {
+        await publish({
+            id: "tiny-assets",
+            title: "Tiny",
+            content: "<p>tiny</p>",
+            assets: Array.from({ length: MAX_ASSETS }, (_, i) => ({ name: `${i}.bin`, path })),
+        });
+        assert.ok(checkedUnsafe.mock.callCount() >= MAX_ASSETS);
+    } finally {
+        checkedAlloc.mock.restore();
+        checkedUnsafe.mock.restore();
+    }
+
+    assert.deepEqual(
+        (await app.artifactAsset(session, "tiny-assets", 1, "199.bin")).bytes,
+        Buffer.from([0, 1, 2, 255]),
+    );
+});
+
+test("empty file assets are preserved", async () => {
+    const dir = mkdtempSync(join(work, "empty-asset-"));
+    const path = join(dir, "empty.bin");
+
+    writeFileSync(path, "");
+    await publish({
+        id: "empty-file",
+        title: "Empty",
+        content: "<p>empty</p>",
+        assets: [{ name: "empty.bin", path }],
+    });
+    assert.equal((await app.artifactAsset(session, "empty-file", 1, "empty.bin")).bytes.length, 0);
+});
+
+test("a file grown after stat is rejected after at most one excess byte", async () => {
+    const dir = mkdtempSync(join(work, "growing-asset-"));
+    const path = join(dir, "growing.bin");
+    const descriptor = openSync(path, "w");
+    const probe = await open(path, "r");
+    const identity = await probe.stat();
+    const prototype = Object.getPrototypeOf(probe);
+    const stat = prototype.stat as (this: FileHandle) => Promise<Stats>;
+    const read = prototype.read as (...args: unknown[]) => Promise<{ bytesRead: number }>;
+    let targetFd = -1;
+    let bytesRead = 0;
+    const checkedStat = mock.method(prototype, "stat", async function (this: FileHandle) {
+        const info = await stat.call(this);
+
+        if (info.ino === identity.ino && info.dev === identity.dev && this.fd !== probe.fd) {
+            targetFd = this.fd;
+            ftruncateSync(descriptor, MAX_ASSET_BYTES + 100);
+        }
+
+        return info;
+    });
+    const checkedRead = mock.method(
+        prototype,
+        "read",
+        async function (this: FileHandle, ...args: unknown[]) {
+            const result = await Reflect.apply(read, this, args);
+
+            if (this.fd === targetFd) {
+                bytesRead += result.bytesRead;
+            }
+
+            return result;
+        },
+    );
+
+    try {
+        await assert.rejects(
+            publish({
+                id: "grown-file",
+                title: "Growth",
+                content: "<p>growth</p>",
+                assets: [{ name: "growing.bin", path }],
+            }),
+            /limited to 64000000 bytes/,
+        );
+        assert.equal(bytesRead, MAX_ASSET_BYTES + 1);
+    } finally {
+        checkedRead.mock.restore();
+        checkedStat.mock.restore();
+        await probe.close();
+        closeSync(descriptor);
+    }
+
+    await assert.rejects(app.artifactBundle(session, "grown-file"), /No such artifact/);
+});
+
+test("40 MB binary publish, bundle readback, and signed HTTP response preserve every byte", async (t) => {
+    const dir = mkdtempSync(join(work, "large-binary-"));
+    const path = join(dir, "data.bin");
+    const descriptor = openSync(path, "w");
+    const chunk = randomBytes(64 * 1024);
+    const hash = createHash("sha256");
+    const size = 40_000_000;
+
+    try {
+        for (let offset = 0; offset < size; offset += chunk.length) {
+            const bytes = chunk.subarray(0, Math.min(chunk.length, size - offset));
+
+            writeSync(descriptor, bytes);
+            hash.update(bytes);
+        }
+    } finally {
+        closeSync(descriptor);
+    }
+
+    const started = performance.now();
+    const rssBefore = process.memoryUsage().rss;
+
+    await publish({
+        id: "large-binary",
+        title: "Binary",
+        content: "<p>binary</p>",
+        assets: [{ name: "data.bin", path }],
+    });
+    const published = performance.now();
+    const bundle = await app.artifactBundle(session, "large-binary");
+    const bytes = bundle.assets[0]!.bytes;
+
+    assert.equal(bytes.length, size);
+    const expectedHash = hash.digest("hex");
+
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), expectedHash);
+    const readBack = performance.now();
+    const page = await get(`/a/${session}/large-binary/1`);
+    const signed = /<base href="([^"]+)">/.exec(await page.text())![1]!;
+    const response = await get(signed + "data.bin", false);
+
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-security-policy")!, /^sandbox /);
+    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+    const reader = response.body!.getReader();
+    const responseHash = createHash("sha256");
+    let responseSize = 0;
+
+    while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+            break;
+        }
+
+        responseHash.update(value);
+        responseSize += value.byteLength;
+    }
+
+    assert.equal(responseSize, size);
+    assert.equal(responseHash.digest("hex"), expectedHash);
+    t.diagnostic(
+        JSON.stringify({
+            assetBytes: size,
+            publishMs: Math.round(published - started),
+            readMs: Math.round(readBack - published),
+            httpMs: Math.round(performance.now() - readBack),
+            rssBeforeMiB: Math.round(rssBefore / 1024 ** 2),
+            rssAfterMiB: Math.round(process.memoryUsage().rss / 1024 ** 2),
+            lifetimePeakRssMiB: Math.round(process.resourceUsage().maxRSS / 1024),
+        }),
     );
 });
 

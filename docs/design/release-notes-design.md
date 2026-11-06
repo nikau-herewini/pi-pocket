@@ -17,7 +17,7 @@ These are the Design parts of the 0.26.0 notes. Merge them into the body of pull
 - **Pi checks its designs.** Before it replies, Pi renders a design at phone and desktop sizes in a private browser and fixes the errors it finds. The browser you watch stays out of it.
 - **Export.** PNG, PDF, PowerPoint (for decks), and an HTML zip, saved in the session's `exports/` folder and downloaded from the canvas. PowerPoint slides are images, with the slide text as notes.
 - **Project design systems.** Pi reads a codebase or brand files you point at, writes the rules to `.pi/design-system.md` in the session's folder, and follows them in later designs.
-- **Bundles for artifacts.** An artifact version can hold up to 200 files, 5 MB each and 20 MB in all. A new version keeps the files of the last one. Pages can link to each other, and a shared link serves the files too. Old artifacts work as they did.
+- **Bundles for artifacts.** In 0.26.0, an artifact version could hold up to 200 files, 5 MB each and 20 MB in all. These are historical release limits; see the [current limits](../extensions/reference/limits.md#artifacts). A new version keeps the files of the last one. Pages can link to each other, and a shared link serves the files too. Old artifacts work as they did.
 
 ### Known limits
 
