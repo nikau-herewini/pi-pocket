@@ -317,6 +317,27 @@ function GoalBar() {
     </div>`;
 }
 
+/** Loop: the task Pi does again after each answer, and the way to end it. */
+function LoopBar() {
+    const { loop } = store.state.view;
+
+    if (!loop) {
+        return null;
+    }
+
+    return html`<div class="loop-bar">
+        <span class="grow" title=${loop.task}>
+            <strong>Loop.</strong> ${loop.task}
+        </span>
+        ${
+            canSteer() &&
+            html`<button class="link small" onClick=${() => attempt(actions.clearLoop)}>
+                Turn off
+            </button>`
+        }
+    </div>`;
+}
+
 /** How a watch's last look found the PR's checks, and why a watch ended. */
 const WATCH_CHECKS = {
     pending: "checks running",
@@ -1259,6 +1280,7 @@ export function Composer() {
             ${collab() && html`<${DriverBar} />`}
             <${PlanBar} blocked=${blocked} />
             <${GoalBar} />
+            <${LoopBar} />
             <${WatchBar} />
             <${SubagentsBar} />
             <${TrustBar} />

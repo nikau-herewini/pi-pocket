@@ -398,6 +398,7 @@ const ICONS = {
     "subagents.ts": "users",
     "schedules.ts": "clock",
     "goals.ts": "check",
+    "loop.ts": "reload",
     "plan.ts": "eye",
     "codemode.ts": "terminal",
     "memory.ts": "pin",

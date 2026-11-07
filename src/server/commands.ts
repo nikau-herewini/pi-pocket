@@ -40,6 +40,7 @@ import type { User } from "./config.ts";
 import {
     AuthorsDoc,
     ChatDoc,
+    type Loop,
     NotesDoc,
     PinsDoc,
     PlanDoc,
@@ -862,7 +863,14 @@ export class Commands {
         ) {
             await this.#discardReports(id);
             await conversation.abort(context);
-            await app.collab.activity(id, user, "interrupted the run");
+            // Interrupting ends the loop too: it repeated until someone interrupted it.
+            const endedLoop = await app.loops.clear(id);
+
+            await app.collab.activity(
+                id,
+                user,
+                endedLoop ? "interrupted the run, which ended the loop" : "interrupted the run",
+            );
         }
 
         // A retry of a request finds its first submission: it is no new message, and no event goes out for it again.
@@ -1258,8 +1266,17 @@ export class Commands {
             .abort(context)
             .catch((error: unknown) => app.notice("error", `Abort failed: ${describe(error)}`, id));
 
+        // A stop ends the loop: it repeated until someone interrupted it.
+        const endedLoop = await app.loops.clear(id);
+
         if (busy) {
-            await app.collab.activity(id, user, "stopped the run");
+            await app.collab.activity(
+                id,
+                user,
+                endedLoop ? "stopped the run, which ended the loop" : "stopped the run",
+            );
+        } else if (endedLoop) {
+            await app.collab.activity(id, user, "ended the loop");
         }
     }
 
@@ -2009,6 +2026,43 @@ export class Commands {
                 `dropped the goal \`${snippet(goal.command, 80)}\``,
             );
         }
+    }
+
+    /**
+     * Start a loop: Pi does `task` now, and again after each of its answers, until someone interrupts the run or
+     * turns the loop off. The first round is the task itself, sent as the person who set it up.
+     */
+    async startLoop(id: ConversationId, user: User, task: unknown): Promise<Loop> {
+        const app = this.#app;
+
+        app.requireSee(user, id);
+        await app.requireDriver(id, user);
+
+        if (app.sessionMeta(id) === undefined) {
+            throw new HttpError(400, "Only sessions can loop a task");
+        }
+
+        const loop = await app.loops.set(id, user.id, optionalText(task, "task") ?? "");
+
+        await app.collab.activity(id, user, `started a loop: \`${snippet(loop.task, 80)}\``);
+        await this.submit(id, user, { text: loop.task, requestId: randomUUID() });
+
+        return loop;
+    }
+
+    /** Turn a session's loop off: Pi stops repeating the task, and its current round runs to the end. */
+    async clearLoop(id: ConversationId, user: User): Promise<void> {
+        const app = this.#app;
+
+        app.requireSee(user, id);
+        app.requireSteer(user);
+        const loop = await app.loops.get(id);
+
+        if (!(await app.loops.clear(id)) || loop === undefined) {
+            return;
+        }
+
+        await app.collab.activity(id, user, `turned the loop off: \`${snippet(loop.task, 80)}\``);
     }
 
     async fork(
