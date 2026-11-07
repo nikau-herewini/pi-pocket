@@ -129,6 +129,9 @@ function FencedText({ text }) {
 const GOAL_CHECK =
     /^\[goal\] `([\s\S]*?)` (still fails|was cut off by a server restart) \(([^)]*)\)\. ([\s\S]*)$/;
 
+/** A loop's next round, as Pi gets it (see src/server/extensions/loop.ts): the task it does again. */
+const LOOP_ROUND = /^\[loop\] ([\s\S]+)$/;
+
 /** A skill run with `/skill:name`, as Pi gets it (see `expandSkillCommand` in src/server/prompts.ts): its name, file, and the request. */
 const SKILL = /^<skill name="([^"]+)" location="([^"]+)">\n[\s\S]*?\n<\/skill>(?:\n\n([\s\S]+))?$/;
 
@@ -359,6 +362,16 @@ function UserEntry({ entry, view, users }) {
 
     if (background) {
         return html`<${BackgroundReport} match=${background} />`;
+    }
+
+    // A loop's next round: nobody typed it, so a person writing "[loop]" themselves keeps it theirs.
+    const round =
+        entry.from === undefined && !view.authors?.[entry.id] ? LOOP_ROUND.exec(entry.text) : null;
+
+    if (round) {
+        return html`<div class="report">
+            <div class="report-head"><span class="report-name">Repeat</span> ${round[1]}</div>
+        </div>`;
     }
 
     const check = GOAL_CHECK.exec(entry.text);

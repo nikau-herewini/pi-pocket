@@ -578,6 +578,22 @@ export const GoalDoc = defineDoc<{ goal?: Goal }>({
 });
 
 /**
+ * A session's loop: one task that Pi does again after each of its answers, until someone interrupts the run or turns
+ * the loop off. `by` is the person who set it up, and `since` when.
+ */
+export type Loop = { task: string; by: string; since: number };
+
+export const LoopDoc = defineDoc<{ loop?: Loop }>({
+    kind: "pocket.loop",
+    version: 1,
+    ...rebased,
+    scope: "conversation",
+    history: "latest",
+    fork: "initial",
+    initial: () => ({}),
+});
+
+/**
  * What Pi spent for each person, in dollars: the work goes to whoever asked for it. `counted` is how much of each
  * conversation's spend is in `people` already, so every dollar is counted once, also across restarts.
  */

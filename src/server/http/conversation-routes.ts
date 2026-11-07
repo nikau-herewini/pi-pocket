@@ -320,6 +320,20 @@ export async function conversationRoutes(
         return json(response, 200, { ok: true });
     }
 
+    if (third === "loop" && method === "POST") {
+        const body = await readJson<{ task?: unknown; clear?: unknown }>(request);
+
+        if (body.clear === true) {
+            await app.commands.clearLoop(id, user);
+
+            return json(response, 200, { ok: true });
+        }
+
+        const loop = await app.commands.startLoop(id, user, body.task);
+
+        return json(response, 200, { ok: true, loop });
+    }
+
     if (third === "worktree" && method === "POST") {
         const body = await readJson<{ remove?: unknown; force?: unknown }>(request);
 

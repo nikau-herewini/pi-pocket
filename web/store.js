@@ -85,6 +85,7 @@ const emptyView = () => ({
     plan: { on: false },
     schedules: [],
     goal: null,
+    loop: null,
     watch: null,
     branch: null,
     subagentsHeld: null,
@@ -750,6 +751,8 @@ function mergeView(current, data) {
         schedules: data.schedules ?? base.schedules,
         // No goal is null, which the server sends too: only a missing field keeps the last value.
         goal: data.goal === undefined ? base.goal : data.goal,
+        // The session's loop, or null: the same.
+        loop: data.loop === undefined ? base.loop : data.loop,
         // The session's PR watch, or null: the same.
         watch: data.watch === undefined ? base.watch : data.watch,
         // Why subagents' reports wait (a spend limit), or null when none do: the subagents bar says it.
@@ -1436,6 +1439,9 @@ export const actions = {
         }),
     cancelSchedule: (id) => api(`c/${current()}/schedules/${encodeURIComponent(id)}/cancel`, {}),
     setGoal: (command) => api(`c/${current()}/goal`, { command }),
+    /** Loop: Pi does `task` now, and again after each answer, until someone interrupts it. */
+    startLoop: (task) => api(`c/${current()}/loop`, { task }),
+    clearLoop: () => api(`c/${current()}/loop`, { clear: true }),
     removeWorktree: (force) => api(`c/${current()}/worktree`, { remove: true, force }),
     clearGoal: () => api(`c/${current()}/goal`, { clear: true }),
     /** Watch the session's pull request: its branch's, or `pr` (a number or address). */

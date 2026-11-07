@@ -28,6 +28,8 @@ import {
     DecisionsDoc,
     type Goal,
     GoalDoc,
+    type Loop,
+    LoopDoc,
     type Notes,
     NotesDoc,
     type Pin,
@@ -82,6 +84,7 @@ export const ROOM_DOCS = new Set(
         PlanDoc,
         ScheduleDoc,
         GoalDoc,
+        LoopDoc,
         WatchDoc,
     ].map((doc) => doc.definition.kind),
 );
@@ -340,6 +343,7 @@ export class Room {
     plan: { on: boolean; by?: string; at?: number } = { on: false };
     schedules: Record<string, Schedule> = {};
     goal: Goal | undefined;
+    loop: Loop | undefined;
     watch: PrWatch | undefined;
     /** Who is typing where, by user id. Memory only: it means nothing after a restart. */
     readonly #typing = new Map<string, { where: TypingPlace; timer: NodeJS.Timeout }>();
@@ -394,6 +398,7 @@ export class Room {
             ...((await harness.snapshot(ScheduleDoc, this.id, context))?.items ?? {}),
         };
         this.goal = (await harness.snapshot(GoalDoc, this.id, context))?.goal;
+        this.loop = (await harness.snapshot(LoopDoc, this.id, context))?.loop;
         this.watch = (await harness.snapshot(WatchDoc, this.id, context))?.watch;
 
         if (owner !== undefined) {
@@ -464,6 +469,8 @@ export class Room {
             this.schedules = { ...((value?.items as Record<string, Schedule>) ?? {}) };
         } else if (kind === GoalDoc.definition.kind) {
             this.goal = (value?.goal as Goal | undefined) ?? undefined;
+        } else if (kind === LoopDoc.definition.kind) {
+            this.loop = (value?.loop as Loop | undefined) ?? undefined;
         } else if (kind === WatchDoc.definition.kind) {
             this.watch = (value?.watch as PrWatch | undefined) ?? undefined;
         }
@@ -650,6 +657,11 @@ export class Room {
                           max: this.goal.max,
                           ...(this.goal.last === undefined ? {} : { last: this.goal.last }),
                       },
+            // The session's loop, as its bar shows it.
+            loop:
+                this.loop === undefined
+                    ? null
+                    : { task: this.loop.task, by: this.loop.by, since: this.loop.since },
             // The session's PR watch, as its bar shows it.
             watch:
                 this.watch === undefined

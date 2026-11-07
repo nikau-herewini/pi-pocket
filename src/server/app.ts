@@ -80,6 +80,7 @@ import { defang, quoted } from "./fence.ts";
 import { FolderFavorites } from "./folder-favorites.ts";
 import { Gallery } from "./gallery.ts";
 import { Goals } from "./goals.ts";
+import { Loops } from "./loops.ts";
 import {
     type ApprovalRequest,
     Approvals,
@@ -337,6 +338,8 @@ export class PocketApp {
     /** Commands Pi runs in the background, watched until they end (`background.ts`). */
     readonly background = new BackgroundTasks(this);
     readonly goals = new Goals(this);
+    /** The task a session repeats after each answer, until someone interrupts it (`loops.ts`). */
+    readonly loops = new Loops(this);
     readonly shell = new Shell(this);
     readonly spend = new Spend(this);
     /** Who Pi works for in each conversation, and who wrote and queued each message. */

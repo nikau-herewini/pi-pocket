@@ -38,7 +38,7 @@ The calls of codemode scripts also go through `beforeTool`.
 
 ## Send Pi on
 
-`onYield(answer, api, context)` runs after Pi's last answer. To send Pi on with another message, return `{ continue: "the message" }`. Done when does this ([goals.ts](../../src/server/extensions/goals.ts)).
+`onYield(answer, api, context)` runs after Pi's last answer. To send Pi on with another message, return `{ continue: "the message" }`. Done when does this ([goals.ts](../../src/server/extensions/goals.ts)), and so does Loop ([loop.ts](../../src/server/extensions/loop.ts)), which sends the session's task again after each answer.
 
 ## Restarts
 

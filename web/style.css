@@ -3253,11 +3253,11 @@ pre.diff .del {
 }
 
 /* Little room for the conversation: each bar keeps one line, its words cut short, its buttons whole. */
-.dock[data-compact] > :is(.plan-bar, .goal-bar, .watch-bar, .trust-bar) {
+.dock[data-compact] > :is(.plan-bar, .goal-bar, .loop-bar, .watch-bar, .trust-bar) {
     flex-wrap: nowrap;
 }
 
-.dock[data-compact] > :is(.plan-bar, .goal-bar, .watch-bar, .trust-bar) > .grow {
+.dock[data-compact] > :is(.plan-bar, .goal-bar, .loop-bar, .watch-bar, .trust-bar) > .grow {
     flex: 1 1 0;
     min-width: 0;
     white-space: nowrap;
@@ -3265,7 +3265,7 @@ pre.diff .del {
     text-overflow: ellipsis;
 }
 
-.dock[data-compact] > :is(.plan-bar, .goal-bar, .watch-bar, .trust-bar) > :not(.grow) {
+.dock[data-compact] > :is(.plan-bar, .goal-bar, .loop-bar, .watch-bar, .trust-bar) > :not(.grow) {
     flex: none;
     white-space: nowrap;
 }
@@ -9144,6 +9144,7 @@ textarea.notes {
 .driver-bar,
 .plan-bar,
 .goal-bar,
+.loop-bar,
 .watch-bar,
 .trust-bar,
 .view-only {
@@ -9164,6 +9165,7 @@ textarea.notes {
 .driver-bar::before,
 .plan-bar::before,
 .goal-bar::before,
+.loop-bar::before,
 .watch-bar::before,
 .trust-bar::before,
 .view-only::before {
@@ -9177,6 +9179,7 @@ textarea.notes {
 
 .plan-bar,
 .goal-bar,
+.loop-bar,
 .watch-bar:is(.watching, .merged, .closed) {
     --tone: var(--accent);
 }

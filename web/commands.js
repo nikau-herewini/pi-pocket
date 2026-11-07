@@ -28,6 +28,9 @@ export const schedulesAvailable = () =>
     isSession() && store.state.server?.extensions?.includes("pocket-schedules") === true;
 const goalsAvailable = () =>
     isSession() && store.state.server?.extensions?.includes("pocket-goals") === true;
+/** Loops need their extension too. */
+const loopAvailable = () =>
+    isSession() && store.state.server?.extensions?.includes("pocket-loop") === true;
 
 /** Webhooks need the triggers extension; so does watching a PR, which is for sessions other than PiP. */
 export const triggersOn = () =>
@@ -342,6 +345,39 @@ const COMMANDS = [
 
             await actions.setGoal(arg);
             notify("info", `Pi keeps going until ${arg} passes, checked after each answer.`);
+        },
+    },
+    {
+        name: "loop",
+        args: "[task | off]",
+        description: "Pi does the same task again after each answer, until you interrupt it",
+        available: loopAvailable,
+        run: async (arg) => {
+            if (arg === "off" || arg === "stop") {
+                await actions.clearLoop();
+                notify("info", "The loop is off: Pi stops when this answer ends.");
+
+                return;
+            }
+
+            if (arg.trim() === "") {
+                const loop = store.state.view.loop;
+
+                notify(
+                    "info",
+                    loop
+                        ? `Looping: ${loop.task}`
+                        : "Say which task Pi repeats, such as /loop run the tests.",
+                );
+
+                return;
+            }
+
+            await actions.startLoop(arg);
+            notify(
+                "info",
+                "Looping: Pi does that task again after each answer, until you interrupt it.",
+            );
         },
     },
     {
