@@ -7986,6 +7986,35 @@ div.group-head {
     justify-content: flex-end;
 }
 
+/* Subscription usage stays in the provider row, with room for both windows on a phone. */
+.codex-usage {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 10px;
+    min-width: 0;
+}
+
+.codex-usage-head,
+.codex-usage-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.codex-usage-window {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.codex-usage-window progress {
+    width: 100%;
+    height: 7px;
+    accent-color: var(--accent);
+}
+
 /* What a provider said when it would not renew a sign-in. */
 .provider-why {
     overflow-wrap: anywhere;

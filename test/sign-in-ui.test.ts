@@ -202,6 +202,61 @@ after(async () => {
     cleanUp();
 });
 
+test("Codex usage clears stale windows after a failed refresh on a phone", real, async () => {
+    await page.setViewport(VIEWPORTS.mobile);
+    await page.navigate(`${base}/login?token=${encodeURIComponent(app.config.ownerToken)}`);
+    await see(
+        `return JSON.stringify((await import("/store.js")).store.state.me?.role === "owner")`,
+        "signed in",
+    );
+    await page.evaluate(`
+        const { openSheet } = await import("/store.js");
+        const original = window.fetch;
+        window.usageCalls = 0;
+        window.fetch = async (url, init) => {
+            if (String(url) === "/api/providers") {
+                const response = await original(url, init);
+                const rows = await response.json();
+                const codex = rows.find((row) => row.id === "openai-codex");
+
+                codex.configured = true;
+                codex.subscription = true;
+
+                return Response.json(rows);
+            }
+
+            if (String(url) === "/api/providers/openai-codex/usage") {
+                window.usageCalls++;
+
+                return window.usageCalls === 1
+                    ? Response.json({ checkedAt: Date.now(), primary: { remaining: 70, windowMinutes: 300 } })
+                    : Response.json({ error: "Usage unavailable" }, { status: 502 });
+            }
+
+            return original(url, init);
+        };
+        openSheet({ type: "providers" });
+
+        return "true";
+    `);
+    await see(
+        `return JSON.stringify(document.querySelector(".codex-usage-window")?.textContent.includes("70% left") === true)`,
+        "Codex allowance",
+    );
+    await settled();
+    await page.click({ label: "Refresh Codex usage" });
+    await see(
+        `return JSON.stringify(document.querySelector(".codex-usage [role=status]")?.textContent.includes("Usage unavailable") === true)`,
+        "Codex usage failure",
+    );
+    assert.equal(
+        await inPage<boolean>(
+            `return JSON.stringify(document.querySelector(".codex-usage-window") === null)`,
+        ),
+        true,
+    );
+});
+
 test(
     "a sign-in that asks twice shows the second question, though it came before the first answer's reply",
     real,
