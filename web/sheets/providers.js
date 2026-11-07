@@ -180,6 +180,113 @@ function LimitWait() {
     </div>`;
 }
 
+/** Codex's reported allowance, not Pi Pocket's token spend or a promise that the next request succeeds. */
+function CodexUsage() {
+    const [usage, setUsage] = useState(null);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const sequence = useRef(0);
+
+    const load = async () => {
+        const current = ++sequence.current;
+
+        setLoading(true);
+        setUsage(null);
+        setError("");
+
+        try {
+            const data = await api("providers/openai-codex/usage");
+
+            if (sequence.current === current) {
+                setUsage(data);
+            }
+        } catch (failure) {
+            if (sequence.current === current) {
+                setError(failure.message || "Usage unavailable.");
+            }
+        } finally {
+            if (sequence.current === current) {
+                setLoading(false);
+            }
+        }
+    };
+
+    useEffect(() => {
+        load();
+
+        return () => {
+            sequence.current++;
+        };
+    }, []);
+
+    const label = (window, fallback) => {
+        const minutes = window.windowMinutes;
+
+        if (!Number.isFinite(minutes)) {
+            return fallback;
+        }
+
+        if (minutes % 10080 === 0) {
+            return `${minutes / 10080}-week window`;
+        }
+
+        if (minutes % 1440 === 0) {
+            return `${minutes / 1440}-day window`;
+        }
+
+        if (minutes % 60 === 0) {
+            return `${minutes / 60}-hour window`;
+        }
+
+        return `${Math.round(minutes)}-minute window`;
+    };
+
+    const windows = [
+        ["primary", "Primary window"],
+        ["secondary", "Secondary window"],
+    ].filter(([key]) => usage?.[key]);
+
+    return html`<div class="codex-usage" aria-label="Codex subscription usage">
+        <div class="codex-usage-head">
+            <span class="small">Subscription allowance</span>
+            <button
+                class="button small ghost"
+                onClick=${load}
+                disabled=${loading}
+                aria-label="Refresh Codex usage"
+            >
+                ${loading ? "Checking…" : "Refresh"}
+            </button>
+        </div>
+        ${windows.map(([key, fallback]) => {
+            const window = usage[key];
+
+            return html`<div class="codex-usage-window" key=${key}>
+                <div class="codex-usage-line small">
+                    <span>${label(window, fallback)}</span>
+                    <strong>${usage.blocked ? "Unavailable" : `${window.remaining}% left`}</strong>
+                </div>
+                ${!usage.blocked && html`<progress value=${window.remaining} max="100" aria-label=${`${label(window, fallback)} remaining`} />`}
+                ${
+                    window.resetAt &&
+                    html`<div class="muted small">
+                    Resets ${new Date(window.resetAt).toLocaleString()}
+                </div>`
+                }
+            </div>`;
+        })}
+        ${usage?.blocked && html`<div class="warn small" role="status">OpenAI reports this quota is unavailable.</div>`}
+        ${error && html`<div class="warn small" role="status">${error}</div>`}
+        ${
+            usage?.checkedAt &&
+            html`<div class="muted small">
+            Reported ${new Date(usage.checkedAt).toLocaleTimeString()}
+        </div>`
+        }
+        <div class="muted small">OpenAI's reported percentages; availability may change after use.</div>
+    </div>`;
+}
+
 export function ProvidersSheet() {
     const { me, auth } = store.state;
     const [providers, setProviders] = useState(null);
@@ -251,6 +358,13 @@ export function ProvidersSheet() {
             ${
                 provider.needsSignIn &&
                 html`<div class="muted small mono provider-why">${provider.needsSignIn}</div>`
+            }
+            ${
+                owner &&
+                provider.id === "openai-codex" &&
+                provider.subscription &&
+                !provider.needsSignIn &&
+                html`<${CodexUsage} />`
             }
         </div>
         ${

@@ -746,6 +746,19 @@ export function createApi(options: HttpOptions, auth: Auth) {
             return json(response, 200, app.providers.list(user.role === "owner"));
         }
 
+        // Subscription allowance is private to the owner; never include it in the shared provider list.
+        if (
+            first === "providers" &&
+            second === "openai-codex" &&
+            third === "usage" &&
+            fourth === undefined &&
+            method === "GET"
+        ) {
+            requireOwner(user);
+
+            return json(response, 200, await app.providers.usage());
+        }
+
         if (
             first === "providers" &&
             second !== undefined &&

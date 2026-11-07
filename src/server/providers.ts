@@ -15,6 +15,7 @@ import type { AuthPrompt } from "@earendil-works/pi-ai";
 import type { ModelRef } from "@earendil-works/pi-durable";
 import type { PocketApp } from "./app.ts";
 import type { User } from "./config.ts";
+import { codexUsage } from "./codex-usage.ts";
 import { describe, HttpError } from "./errors.ts";
 import { ModelRefresh } from "./model-refresh.ts";
 
@@ -257,6 +258,7 @@ export class Providers {
                 id: provider.id,
                 name: provider.name,
                 configured: status.configured,
+                subscription: models.isUsingOAuth(provider.id),
                 source: status.source ?? null,
                 label: status.label ?? null,
                 apiKey: auth?.apiKey !== undefined,
@@ -270,6 +272,33 @@ export class Providers {
                     : { needsSignIn: owner ? expired : "its provider would not renew it" }),
             };
         });
+    }
+
+    /** The owner's Codex subscription windows, from OpenAI, never a stored or estimated Pi spend figure. */
+    async usage(): Promise<Awaited<ReturnType<typeof codexUsage>>> {
+        const models = this.#app.models;
+
+        if (!models.isUsingOAuth("openai-codex")) {
+            throw new HttpError(409, "Sign in to OpenAI Codex with a subscription to see usage.");
+        }
+
+        let token: string | undefined;
+
+        try {
+            token = (
+                await models.getAuth("openai-codex", {
+                    signal: AbortSignal.timeout(CHECK_MS),
+                })
+            )?.auth.apiKey;
+        } catch {
+            throw new HttpError(502, "Could not refresh the Codex sign-in. Try signing in again.");
+        }
+
+        if (token === undefined) {
+            throw new HttpError(409, "Sign in to OpenAI Codex to see usage.");
+        }
+
+        return codexUsage(token);
     }
 
     startLogin(user: User, providerId: string, type: "api_key" | "oauth"): string {
