@@ -29,7 +29,7 @@ Rules for every stream:
 
 A design needs images, fonts, data files, and more than one page. Today an artifact is one UTF-8 file.
 
-- The `artifact` and `artifact_inline` tools get `assets`: up to 200 entries of `{ name, path }` (copy a file from the session's machine, binary allowed) or `{ name, content }` (UTF-8 text). `name` is a relative path: segments of `[A-Za-z0-9._-]`, joined by `/`, no `.` or `..` segment, no leading `/`, up to 200 characters.
+- The `artifact` tool (and `artifact_inline`, until 0.28.0, when `inline: true` replaced it) gets `assets`: up to 200 entries of `{ name, path }` (copy a file from the session's machine, binary allowed) or `{ name, content }` (UTF-8 text). `name` is a relative path: segments of `[A-Za-z0-9._-]`, joined by `/`, no `.` or `..` segment, no leading `/`, up to 200 characters.
 - A new version keeps the assets of the version before. `removeAssets: string[]` drops some. An entry with an existing name replaces it.
 - Original 0.26.0 limits: 5 MB for one asset and 20 MB for all the assets of one version. The current limits are 64 MB (64,000,000 bytes) for one asset and 128 MB (128,000,000 bytes) for all assets, as constants beside the unchanged 2 MB `MAX_BYTES`. See [current limits](../extensions/reference/limits.md#artifacts).
 - Storage: assets are stored once for each content hash (sha256) in a new document kind, `pocket.artifact-asset`, keyed by the hash, with the bytes in base64. `ArtifactVersion` gets an optional `assets?: Record<string, { hash: string; size: number; type: string }>`. A replayed call must find what it wrote, as the body does.

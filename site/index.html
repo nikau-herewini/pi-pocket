@@ -70,7 +70,7 @@
                 <div class="wrap">
                     <div>
                         <a class="badge" href="https://earendil.com/posts/pi-durable/"
-                            ><b>Rolling main</b>Built on Pi Durable →</a
+                            ><b>v0.28.0</b>Built on Pi Durable →</a
                         >
                         <h1>Pi, on your phone.<br /><span class="grad">And any browser.</span></h1>
                         <p class="lead">
@@ -1015,7 +1015,7 @@
                 <div class="wrap">
                     <div class="section-head center reveal">
                         <span class="kicker">Access</span>
-                        <h2>Four ways to connect.</h2>
+                        <h2>Five ways to connect.</h2>
                         <p>
                             Configure access in the container's environment. Read the owner's
                             sign-in link from its logs, and keep that link private.
@@ -1047,9 +1047,18 @@
                                 port.
                             </p>
                         </div>
+                        <div class="mode reveal">
+                            <code>tailscale-serve</code>
+                            <h3>Tailscale Serve</h3>
+                            <p>
+                                https on your own tailnet name, with a certificate Tailscale holds
+                                and nothing public.
+                            </p>
+                        </div>
                     </div>
                     <p class="note">
-                        Push notifications and dictation need https. Android and iPhone browsers
+                        Push notifications and dictation need https, from Cloudflare Tunnel or
+                        <code>tailscale serve</code> on the host. Android and iPhone browsers
                         connect to the Docker deployment; running the server on a phone is not
                         supported. See the
                         <a href="docs/docker/#access-and-ports">Docker access guide</a>.

@@ -120,6 +120,8 @@ Do not use `PI_POCKET_ACCESS=local` with the published port: `local` listens on 
 
 `cloudflare` works in the container: the image already contains `cloudflared`, so the launcher does not need a terminal to download it. The tunnel runs inside the container, and the published port is not used. `tailscale` looks for a Tailscale address in the container, which it usually does not have. Run Tailscale on the host instead: publish the port on `127.0.0.1` as above and point `tailscale serve` at it, or run the container with `network_mode: host`.
 
+`tailscale-serve` does not work from the container as shipped: the image has no `tailscale` command, and it would need the host's `tailscaled` socket as well. Keep Tailscale on the host and mount the port by hand, as above; the launcher's own mode is for a native install.
+
 ## Permissions
 
 Compose runs the container as root by default. With rootful Docker, files created in the mounts belong to root on the host. To run as your user instead, make sure the external folders are owned by that user and add this to the service:
