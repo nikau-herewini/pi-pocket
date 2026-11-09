@@ -275,18 +275,23 @@ export class Providers {
     }
 
     /** The owner's Codex subscription windows, from OpenAI, never a stored or estimated Pi spend figure. */
-    async usage(): Promise<Awaited<ReturnType<typeof codexUsage>>> {
-        const models = this.#app.models;
+    async usage(providerId: string): Promise<Awaited<ReturnType<typeof codexUsage>>> {
+        if (providerId !== "openai" && providerId !== "openai-codex") {
+            throw new HttpError(404, "No subscription usage for this provider.");
+        }
 
-        if (!models.isUsingOAuth("openai-codex")) {
-            throw new HttpError(409, "Sign in to OpenAI Codex with a subscription to see usage.");
+        const models = this.#app.models;
+        const name = models.getProvider(providerId)?.name ?? providerId;
+
+        if (!models.isUsingOAuth(providerId)) {
+            throw new HttpError(409, `Sign in to ${name} with a subscription to see usage.`);
         }
 
         let token: string | undefined;
 
         try {
             token = (
-                await models.getAuth("openai-codex", {
+                await models.getAuth(providerId, {
                     signal: AbortSignal.timeout(CHECK_MS),
                 })
             )?.auth.apiKey;
@@ -295,7 +300,7 @@ export class Providers {
         }
 
         if (token === undefined) {
-            throw new HttpError(409, "Sign in to OpenAI Codex to see usage.");
+            throw new HttpError(409, `Sign in to ${name} with a subscription to see usage.`);
         }
 
         return codexUsage(token);
