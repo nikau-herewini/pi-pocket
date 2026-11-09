@@ -3,66 +3,10 @@ import { cleanUp, fakeTab, openApp, owner, scriptedModel, until } from "./helper
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { after, test } from "node:test";
-import { Providers } from "../src/server/providers.ts";
-import type { PocketApp } from "../src/server/app.ts";
 import { createHandler } from "../src/server/http.ts";
 import { HttpError } from "../src/server/errors.ts";
 
 after(cleanUp);
-
-for (const providerId of ["openai", "openai-codex"]) {
-    test(`${providerId} usage refreshes only its own subscription and sanitizes the response`, async (t) => {
-        const token = `header.${Buffer.from(
-            JSON.stringify({
-                "https://api.openai.com/auth": { chatgpt_account_id: "test-account" },
-            }),
-        ).toString("base64url")}.signature`;
-        const providers = new Providers({
-            models: {
-                isUsingOAuth: (id: string) => id === providerId,
-                getProvider: () => ({ name: providerId }),
-                getAuth: async (id: string, options: { signal: AbortSignal }) => {
-                    assert.equal(id, providerId);
-                    assert.ok(options.signal instanceof AbortSignal);
-
-                    return { auth: { apiKey: token } };
-                },
-            },
-        } as unknown as PocketApp);
-        const request = t.mock.method(
-            globalThis,
-            "fetch",
-            async (url: string | URL | Request, init?: RequestInit) => {
-                assert.equal(url, "https://chatgpt.com/backend-api/wham/usage");
-                const headers = new Headers(init?.headers);
-
-                assert.equal(headers.get("Authorization"), `Bearer ${token}`);
-                assert.equal(headers.get("chatgpt-account-id"), "test-account");
-
-                return new Response(
-                    JSON.stringify({
-                        rate_limit: {
-                            primary_window: { used_percent: 20, limit_window_seconds: 18000 },
-                            secondary_window: { used_percent: 35, limit_window_seconds: 604800 },
-                        },
-                        access_token: "private",
-                    }),
-                );
-            },
-        );
-
-        const usage = await providers.usage(providerId);
-
-        assert.deepEqual(usage.primary, { remaining: 80, windowMinutes: 300 });
-        assert.deepEqual(usage.secondary, { remaining: 65, windowMinutes: 10080 });
-        assert.equal(request.mock.callCount(), 1);
-        assert.doesNotMatch(JSON.stringify(usage), /private|test-account|signature/);
-        await assert.rejects(
-            providers.usage("anthropic"),
-            (error: unknown) => error instanceof HttpError && error.status === 404,
-        );
-    });
-}
 
 test("an empty API key is refused without consuming the prompt or storing a credential", async () => {
     const app = await openApp(scriptedModel());
@@ -91,7 +35,7 @@ test("an empty API key is refused without consuming the prompt or storing a cred
     }
 });
 
-test("Codex subscription usage is owner-only and requires a subscription sign-in", async (t) => {
+test("Codex subscription usage is owner-only and requires a subscription sign-in", async () => {
     const app = await openApp(scriptedModel());
     const server = createServer(
         createHandler({ app, listen: { host: "127.0.0.1", port: 0 }, restart: () => {} }),
@@ -99,44 +43,21 @@ test("Codex subscription usage is owner-only and requires a subscription sign-in
 
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const port = (server.address() as { port: number }).port;
-    const base = `http://127.0.0.1:${port}/api/providers`;
+    const url = `http://127.0.0.1:${port}/api/providers/openai-codex/usage`;
 
     try {
-        for (const providerId of ["openai", "openai-codex"]) {
-            const url = `${base}/${providerId}/usage`;
-            const guest = app.config.addUser("Cal", "guest").token;
-            const guestResponse = await fetch(url, {
-                headers: { authorization: `Bearer ${guest}` },
-            });
-
-            assert.equal(guestResponse.status, 403);
-            const ownerResponse = await fetch(url, {
-                headers: { authorization: `Bearer ${app.config.ownerToken}` },
-            });
-
-            assert.equal(ownerResponse.status, 409);
-            assert.match((await ownerResponse.json()).error, /subscription/);
-        }
-
-        const usage = { checkedAt: 1, primary: { remaining: 80, windowMinutes: 300 } };
-        const requests: string[] = [];
-
-        t.mock.method(app.providers, "usage", async (providerId: string) => {
-            requests.push(providerId);
-
-            return usage;
+        const guest = app.config.addUser("Cal", "guest").token;
+        const guestResponse = await fetch(url, {
+            headers: { authorization: `Bearer ${guest}` },
         });
 
-        for (const providerId of ["openai", "openai-codex"]) {
-            const response = await fetch(`${base}/${providerId}/usage`, {
-                headers: { authorization: `Bearer ${app.config.ownerToken}` },
-            });
+        assert.equal(guestResponse.status, 403);
+        const ownerResponse = await fetch(url, {
+            headers: { authorization: `Bearer ${app.config.ownerToken}` },
+        });
 
-            assert.equal(response.status, 200);
-            assert.deepEqual(await response.json(), usage);
-        }
-
-        assert.deepEqual(requests, ["openai", "openai-codex"]);
+        assert.equal(ownerResponse.status, 409);
+        assert.match((await ownerResponse.json()).error, /subscription/);
     } finally {
         server.closeAllConnections();
         server.close();

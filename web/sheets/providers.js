@@ -315,7 +315,7 @@ function RowPanel({ open, children }) {
 const ADDING = ":add";
 
 /** Codex's reported allowance, not Pi Pocket's token spend or a promise that the next request succeeds. */
-function CodexUsage({ providerId }) {
+function CodexUsage() {
     const [usage, setUsage] = useState(null);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -329,7 +329,7 @@ function CodexUsage({ providerId }) {
         setError("");
 
         try {
-            const data = await api(`providers/${providerId}/usage`);
+            const data = await api("providers/openai-codex/usage");
 
             if (sequence.current === current) {
                 setUsage(data);
@@ -351,7 +351,7 @@ function CodexUsage({ providerId }) {
         return () => {
             sequence.current++;
         };
-    }, [providerId]);
+    }, []);
 
     const label = (window, fallback) => {
         const minutes = window.windowMinutes;
@@ -565,10 +565,10 @@ export function ProvidersSheet() {
             }
             ${
                 owner &&
-                (provider.id === "openai" || provider.id === "openai-codex") &&
+                provider.id === "openai-codex" &&
                 provider.subscription &&
                 !provider.needsSignIn &&
-                html`<${CodexUsage} providerId=${provider.id} />`
+                html`<${CodexUsage} />`
             }
         </div>
         ${

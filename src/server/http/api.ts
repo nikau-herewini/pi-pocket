@@ -900,14 +900,14 @@ export function createApi(options: HttpOptions, auth: Auth) {
         // Subscription allowance is private to the owner; never include it in the shared provider list.
         if (
             first === "providers" &&
-            (second === "openai" || second === "openai-codex") &&
+            second === "openai-codex" &&
             third === "usage" &&
             fourth === undefined &&
             method === "GET"
         ) {
             requireOwner(user);
 
-            return json(response, 200, await app.providers.usage(second));
+            return json(response, 200, await app.providers.usage());
         }
 
         if (

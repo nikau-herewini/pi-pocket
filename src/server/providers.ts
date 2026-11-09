@@ -275,32 +275,18 @@ export class Providers {
     }
 
     /** The owner's Codex subscription windows, from OpenAI, never a stored or estimated Pi spend figure. */
-    async usage(providerId: string): Promise<Awaited<ReturnType<typeof codexUsage>>> {
-        if (providerId !== "openai" && providerId !== "openai-codex") {
-            throw new HttpError(404, "No subscription usage for this provider.");
-        }
-
+    async usage(): Promise<Awaited<ReturnType<typeof codexUsage>>> {
         const models = this.#app.models;
-        const name = models.getProvider(providerId)?.name ?? providerId;
 
-        if (!models.isUsingOAuth(providerId)) {
-            throw new HttpError(409, `Sign in to ${name} with a subscription to see usage.`);
-        }
-
-        // Direct ChatGPT OAuth does not expose quota reads. Its encrypted metadata is not a
-        // legacy Codex account ID, and its API token must not be sent to the Codex usage endpoint.
-        if (providerId === "openai") {
-            throw new HttpError(
-                409,
-                "OpenAI does not provide usage figures for this sign-in. View usage at https://chatgpt.com/settings/usage.",
-            );
+        if (!models.isUsingOAuth("openai-codex")) {
+            throw new HttpError(409, "Sign in to OpenAI Codex with a subscription to see usage.");
         }
 
         let token: string | undefined;
 
         try {
             token = (
-                await models.getAuth(providerId, {
+                await models.getAuth("openai-codex", {
                     signal: AbortSignal.timeout(CHECK_MS),
                 })
             )?.auth.apiKey;
@@ -309,7 +295,7 @@ export class Providers {
         }
 
         if (token === undefined) {
-            throw new HttpError(409, `Sign in to ${name} with a subscription to see usage.`);
+            throw new HttpError(409, "Sign in to OpenAI Codex to see usage.");
         }
 
         return codexUsage(token);
