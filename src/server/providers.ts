@@ -287,6 +287,15 @@ export class Providers {
             throw new HttpError(409, `Sign in to ${name} with a subscription to see usage.`);
         }
 
+        // Direct ChatGPT OAuth does not expose quota reads. Its encrypted metadata is not a
+        // legacy Codex account ID, and its API token must not be sent to the Codex usage endpoint.
+        if (providerId === "openai") {
+            throw new HttpError(
+                409,
+                "OpenAI does not provide usage figures for this sign-in. View usage at https://chatgpt.com/settings/usage.",
+            );
+        }
+
         let token: string | undefined;
 
         try {
