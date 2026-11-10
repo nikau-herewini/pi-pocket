@@ -1,4 +1,4 @@
-// Subscription allowance follows the provider row, never an API-key connection or a guest.
+// Only legacy Codex OAuth supports quota reads; direct OpenAI OAuth must not load usage.
 import { cleanUp, openApp, root, scriptedModel, until } from "./helpers.ts";
 import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
@@ -13,7 +13,7 @@ import { createHandler } from "../src/server/http.ts";
 after(cleanUp);
 
 test(
-    "OpenAI and legacy allowance load and refresh on a phone, but API keys and guests do not load usage",
+    "only legacy Codex loads and refreshes allowance; OpenAI, API keys, and guests do not",
     {
         skip: findBrowser() === undefined ? "no Chromium-based browser on this machine" : false,
     },
@@ -81,24 +81,31 @@ test(
 
             await until(
                 async () =>
-                    (await state()).requests.length === 2 &&
+                    (await state()).requests.length === 1 &&
                     (await state()).text.includes("65% left"),
-                "both subscription windows",
+                "legacy subscription windows",
             );
             const shown = await state();
 
-            assert.equal(shown.count, 2);
+            assert.equal(shown.count, 1);
             assert.match(shown.text, /5-hour window/);
             assert.match(shown.text, /1-week window/);
             assert.match(shown.text, /Resets/);
             assert.equal(shown.overflow, false);
-            assert.deepEqual(shown.requests.sort(), [
-                "/api/providers/openai-codex/usage",
-                "/api/providers/openai/usage",
-            ]);
+            assert.deepEqual(shown.requests, ["/api/providers/openai-codex/usage"]);
+            const openaiHasUsage = JSON.parse(
+                await page.evaluate(`
+                const row = [...document.querySelectorAll('.provider')].find(row =>
+                    row.querySelector('.provider-name')?.textContent.trim().startsWith('OpenAI') &&
+                    !row.querySelector('.provider-name')?.textContent.includes('legacy'));
+                return JSON.stringify(row ? row.querySelector('.codex-usage') !== null : null);
+            `),
+            );
+
+            assert.equal(openaiHasUsage, false);
             await page.evaluate(`document.querySelector('.codex-usage button').click()`);
             await until(
-                async () => (await state()).requests.length === 3,
+                async () => (await state()).requests.length === 2,
                 "refresh for the selected provider",
             );
 
