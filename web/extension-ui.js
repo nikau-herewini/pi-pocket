@@ -1188,6 +1188,15 @@ function pocketFor(record) {
 
             return (async () => api(`extension-settings/${encodeURIComponent(record.module)}`))();
         },
+        /** Save only this module's settings through core's owner-only, validated, secret-safe endpoint. */
+        saveSettings(patch) {
+            tick(record);
+
+            return (async () =>
+                api(`extension-settings/${encodeURIComponent(record.module)}`, patch, {
+                    method: "PUT",
+                }))();
+        },
         /** Hear when the owner changes the module's settings; returns how to stop. */
         onSettings(run) {
             tick(record);
@@ -1891,6 +1900,27 @@ export function browserModuleState(module) {
     }
 
     return { status: record.status, error: record.error };
+}
+
+/** The owner can open a module's custom settings sheet without a session. Never open it in safe mode. */
+export function ExtensionSettingsButton({ module }) {
+    const name = module.file.replace(/\.ts$/, "");
+    const id = module.web?.settingsSheet;
+
+    if (!id || !module.enabled || store.state.me?.role !== "owner") {
+        return null;
+    }
+
+    const ready = browserModuleState(name)?.status === "ready";
+
+    return html`<button
+        class="button"
+        disabled=${!ready}
+        title=${ready ? undefined : "The browser module is not available in this tab"}
+        onClick=${() => openExtensionSheet(name, id)}
+    >
+        Open settings
+    </button>`;
 }
 
 // ─── Where they show ─────────────────────────────────────────────────────────

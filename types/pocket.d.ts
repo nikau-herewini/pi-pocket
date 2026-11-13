@@ -1572,10 +1572,11 @@ export interface Web {
     onService(module: string, listener: () => void): () => void;
     /**
      * Declares the module's settings, while it loads. Core keeps the owner's values, and shows the settings in the Extensions sheet.
+     * Since 0.28.0, `sheet` can name this module's browser sheet. A basic form remains available as a fallback.
      * @since 0.22.0
      * @experimental
      */
-    settings(fields: readonly SettingField[]): void;
+    settings(fields: readonly SettingField[], options?: { sheet?: string }): void;
     /**
      * A setting's value now: the owner's, or its default.
      * @since 0.22.0
@@ -2870,6 +2871,13 @@ export interface Pocket {
      * @experimental
      */
     onSettings(run: () => void): () => void;
+    /**
+     * Save a patch to this module's settings. Only the owner can save. Null restores a field's default.
+     * Returns sanitized settings, without secret values or secret defaults, as `settings()` does.
+     * @since 0.28.0
+     * @experimental
+     */
+    saveSettings(patch: Record<string, SettingValue | null>): ReturnType<Pocket["settings"]>;
     /**
      * Shows a notice, as the app's own.
      * @since 0.14.0

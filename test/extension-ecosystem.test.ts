@@ -9,6 +9,7 @@ import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import { checkSettings } from "../src/server/extension-settings.ts";
+import { ExtensionWebs } from "../src/server/extension-web.ts";
 import { createHandler } from "../src/server/http.ts";
 
 const dataDir = join(root, "data");
@@ -202,6 +203,32 @@ test("settings that nothing could fill are a mistake, and a secret is text only"
     assert.equal(checkSettings([{ ...number, min: 1, max: 5, default: 5 }]).length, 1);
 });
 
+test("settings can name a browser sheet, using the same id rules as pocket.sheet", async () => {
+    const webs = new ExtensionWebs();
+    const fields = [{ name: "zone", label: "Zone", type: "text" as const }];
+    const { part, web } = webs.stage("custom.ts", dropIns, "Custom");
+
+    web.settings(fields, { sheet: "settings" });
+    webs.commit(part);
+    assert.equal(webs.describe("custom.ts")!.settingsSheet, "settings");
+    assert.deepEqual(webs.settingsOf("custom"), fields);
+    assert.throws(() => web.settings(fields), /once|loads/);
+
+    for (const sheet of ["", "has spaces", "../settings", "x".repeat(65), 1, null]) {
+        const staged = webs.stage("invalid.ts", dropIns, "Invalid");
+
+        assert.throws(() => staged.web.settings(fields, { sheet } as never), /sheet/);
+        assert.equal(staged.part.settings, undefined);
+    }
+
+    const plain = webs.stage("plain.ts", dropIns, "Plain");
+
+    plain.web.settings(fields);
+    webs.commit(plain.part);
+    assert.equal(webs.describe("plain.ts")!.settingsSheet, undefined);
+    await webs.close();
+});
+
 test("an unknown event, or a listener that is not a function, throws", () => {
     assert.throws(() => app.events.on("session.exploded" as never, () => {}), /no event/);
     assert.throws(() => app.events.on("run.ended", null as never), /a function/);
@@ -235,10 +262,12 @@ test("settings: core keeps the owner's values, the module reads them, and secret
     });
 
     // Only the owner changes them, each to a value that fits.
-    assert.equal(
-        (await call("/api/extension-settings/configured", "guest", { every: 5 }, "PUT")).status,
-        403,
-    );
+    for (const role of ["guest", "viewer"]) {
+        assert.equal(
+            (await call("/api/extension-settings/configured", role, { every: 5 }, "PUT")).status,
+            403,
+        );
+    }
 
     for (const bad of [
         { every: 0 },

@@ -386,6 +386,18 @@ Since 0.22.0 · Experimental
 
 The module's settings ([`web.settings`](web.md#settings)) as the person in this tab may read them: the fields, each value (the owner's or the default), and which ones the owner set. A secret field's value is left out of `values`; `set` says whether it is set. It rejects with a 404 when the module declares no settings, or is off.
 
+### `saveSettings`
+
+```ts
+saveSettings(patch: Record<string, SettingValue | null>): ReturnType<Pocket["settings"]>;
+```
+
+Since 0.28.0 · Experimental
+
+Saves a patch to this module's declared settings through core's owner-only endpoint. Only the owner can save; guests and viewers get a 403, even when the browser module is available to them. Unknown fields and values that do not fit their fields get a 400; a module that is off or has no settings gets a 404 for the owner.
+
+Omitted fields keep their values. `null` restores the field's default. For secrets, omit the field to keep it, send text to replace it, or send `null` to restore its default (unset when it has none). The result has the same `{ fields, values, set }` shape as [`settings()`](#settings), with secret values and secret defaults omitted. The usual settings-change listeners run. It changes no other module's settings. Check for the function before calling it on an older app. See [dedicated settings sheets](../services-settings.md#a-dedicated-settings-sheet).
+
 ### `onSettings`
 
 ```ts

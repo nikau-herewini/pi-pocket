@@ -38,7 +38,7 @@ shared.cleaned = {};
 let folders = 0;
 
 /** A loader on fresh folders, with every drop-in on. */
-function setUp(loadLimitMs?: number, changed?: () => void) {
+function setUp(loadLimitMs?: number, changed?: () => void, choice: () => boolean = () => true) {
     const directory = join(root, `loader-${++folders}`);
     const builtIn = join(directory, "built-in");
     const dropIn = join(directory, "drop-ins");
@@ -53,7 +53,7 @@ function setUp(loadLimitMs?: number, changed?: () => void) {
             notices.push({ to: "everyone", level, message }),
     } as unknown as PocketHost;
     const webs = new ExtensionWebs(changed === undefined ? {} : { changed });
-    const loader = new ExtensionLoader(registry, host, { builtIn, dropIn }, () => true, {
+    const loader = new ExtensionLoader(registry, host, { builtIn, dropIn }, choice, {
         webs,
         notify: (level, message) => notices.push({ to: "owner", level, message }),
         ...(loadLimitMs === undefined ? {} : { loadLimitMs }),
@@ -94,6 +94,71 @@ const answer = (webs: ExtensionWebs, module: string) => {
         ? (found.route.handle({} as never) as { v?: unknown })
         : undefined;
 };
+
+test("leading JSDoc titles are read while disabled, with no execution and no metadata in summaries", async () => {
+    let enabled = false;
+    const { dropIn, loader, webs } = setUp(undefined, undefined, () => enabled);
+    const file = join(dropIn, "display-name.ts");
+
+    try {
+        writeFileSync(
+            file,
+            `/**
+ * A useful module. More details.
+ * @title Display Name
+ */
+throw new Error("must not execute while disabled");`,
+        );
+        await loader.loadAll();
+        const info = loader.list()[0]!;
+
+        assert.equal(info.title, "Display Name");
+        assert.equal(info.summary, "A useful module.");
+        assert.equal(info.file, "display-name.ts");
+        assert.equal(info.enabled, false);
+        assert.equal(info.error, undefined);
+        assert.equal(webs.clients(owner).length, 0);
+
+        const cases = [
+            ["", "display-name"],
+            [" * @title\n", "display-name"],
+            [" * @title " + "x".repeat(81) + "\n", "display-name"],
+            [" * @title Bad\u0000Name\n", "display-name"],
+            [" * @title Bad\u202eName\n", "display-name"],
+            [" * @title First\n * @title Second\n", "display-name"],
+            [" * @title   Unicode Café   \n", "Unicode Café"],
+            [" * @title " + "x".repeat(80) + "\n", "x".repeat(80)],
+        ];
+
+        for (const [tag, title] of cases) {
+            writeFileSync(
+                file,
+                `/**\n${tag} * Useful description without punctuation\n */\nthrow new Error("disabled");`,
+            );
+            assert.equal(loader.list()[0]!.title, title);
+            assert.equal(loader.list()[0]!.summary, "Useful description without punctuation");
+        }
+
+        writeFileSync(
+            file,
+            `// Not a leading JSDoc\n/** @title Ignored */\nthrow new Error("disabled");`,
+        );
+        assert.equal(loader.list()[0]!.title, "display-name");
+        assert.equal(loader.list()[0]!.summary, "");
+
+        writeFileSync(join(dropIn, "display-name.js"), "export default () => {};");
+        writeFileSync(
+            file,
+            `/**\n * @title Display Name\n * Useful description.\n */\nexport default (_host, web) => web.client("display-name.js");`,
+        );
+        enabled = true;
+        await loader.apply("display-name.ts");
+        assert.equal(webs.clients(owner)[0]!.module, "display-name");
+        assert.equal(webs.clients(owner)[0]!.title, "Display Name");
+    } finally {
+        await loader.close();
+    }
+});
 
 test("legacy drop-in documents write through frozen helper definitions, reload, and restart", async () => {
     const data = join(root, "legacy-documents");

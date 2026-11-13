@@ -36,6 +36,7 @@ const seen = globalThis as unknown as { meterWeb?: ExtensionWeb };
 /** `Pocket`'s members in the public types: `npm run check` holds this to them, and the first test holds `pocket` to it. */
 const POCKET_MEMBERS: Record<keyof Pocket, true> = {
     settings: true,
+    saveSettings: true,
     onSettings: true,
     version: true,
     pocketVersion: true,

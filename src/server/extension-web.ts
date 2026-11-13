@@ -239,6 +239,7 @@ export class WebPart {
     /** What the module offers other modules (`web.provide`), and the settings it declares (`web.settings`). */
     service: object | undefined;
     settings: SettingField[] | undefined;
+    settingsSheet: string | undefined;
     /** What the module listens to: other modules' services, and its own settings. They go with this version. */
     readonly serviceListeners: { module: string; listener: () => void }[] = [];
     readonly settingsListeners: (() => void)[] = [];
@@ -486,14 +487,29 @@ export class ExtensionWebs {
                     }
                 };
             },
-            settings: (fields) => {
+            settings: (fields, options = {}) => {
                 open("settings");
 
                 if (part.settings !== undefined) {
                     throw new Error("web.settings: declare a module's settings once");
                 }
 
+                const sheet = options?.sheet;
+
+                if (
+                    options === null ||
+                    typeof options !== "object" ||
+                    (sheet !== undefined &&
+                        (typeof sheet !== "string" ||
+                            !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/.test(sheet)))
+                ) {
+                    throw new Error(
+                        "web.settings: sheet is the id of a browser sheet (1 to 64 characters)",
+                    );
+                }
+
                 part.settings = checkSettings(fields);
+                part.settingsSheet = sheet;
             },
             setting: (name) => {
                 const field = part.settings?.find((each) => each.name === name);
@@ -1059,6 +1075,7 @@ export class ExtensionWebs {
               publicPage: boolean;
               service: boolean;
               settings: boolean;
+              settingsSheet?: string;
           }
         | undefined {
         const part = this.#parts.get(moduleName(file));
@@ -1082,6 +1099,7 @@ export class ExtensionWebs {
             publicPage: part.page !== undefined,
             service: part.service !== undefined,
             settings: part.settings !== undefined,
+            ...(part.settingsSheet === undefined ? {} : { settingsSheet: part.settingsSheet }),
         };
     }
 
