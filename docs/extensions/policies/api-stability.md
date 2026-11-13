@@ -24,7 +24,7 @@ Each item below is public as the reference and the guides describe it: its names
 - A `.ts` file in the drop-in folder (`extensions/` in the data folder), with the `node_modules` link to Pi Pocket's packages.
 - The default export `(host, web)`. It can be `async`. It returns one extension, a list, or nothing. Pi Pocket installs all of it or none of it.
 - `export const pocketApi`.
-- The first sentence of the module's `/** … */` comment, which is its description.
+- The first sentence of the module's `/** … */` comment, which is its description, and optional `@title` display metadata ([Modules](../modules.md)).
 - Files that start with `_` or end in `.test.ts` are not modules.
 - Loading, reloading, and errors ([Modules, loading, and errors](../modules.md)), with the times in [Limits](../reference/limits.md#loading).
 - The types in [types/pocket.d.ts](../../../types/pocket.d.ts): `Module`, `Host`, `SafeText`, `LinkedSessions`, `LinkedSession`, `Web`, `WebRequest`, `ConversationWebRequest`, `HumanLinkedSessions`, `HumanLinkedSession`, `WebHandler`, `WebAccess`, `WebMethod`, `Command`, `CommandContext`, `CommandResult`, `BrowserModule`, `Pocket`, the specs and props of what a browser module adds, `Person`, `Role`, and `NoticeLevel`. Import them with `import type` from `./_pocket.d.ts` in the drop-in folder ([Types for your editor](../reference/types.md)): the import goes away at run time.
@@ -85,6 +85,7 @@ The host's members do not change while modules reload. A new member comes only a
 - `h`, `html`, `Fragment`, and the hooks: `useState`, `useEffect`, `useLayoutEffect`, `useRef`, `useMemo`, `useCallback`, and `useReducer`.
 - The pieces `Icon`, `Loader`, `Spinner`, `Markdown`, and `Switch`, with the props that [pocket](../reference/pocket.md) gives.
 - `api`, `on`, `rail`, `menu`, `launcher`, `page`, `sheet`, `toolCall`, `openPage`, `closePage`, `openSheet`, `closeSheet`, `notify`, `me`, `conversationId`, `openConversation` (since 0.16.0), `style`, and `onDispose`.
+- `settings`, `onSettings` (experimental, since 0.22.0), and `saveSettings` (experimental, since 0.28.0): core-managed module settings, with owner-only writes and secrets omitted from browser reads and save results.
 - What a page's or a sheet's component gets: `pocket`, `close`, and a sheet's `props`.
 - The icon names that [pocket](../reference/pocket.md) lists. Other icon names can go. An unknown name shows `grid`, so a module does not fail.
 - Safe mode: `?noext=1` and `?noext=0` on the app's address.

@@ -825,7 +825,7 @@ export interface ExtensionWeb {
     /** Hear when a module's service comes, changes, or goes. Returns how to stop; it stops when this version goes. */
     onService(module: string, listener: () => void): () => void;
     /** Declare the module's settings, while it loads: core keeps the owner's values and shows them in Extensions. */
-    settings(fields: readonly SettingField[]): void;
+    settings(fields: readonly SettingField[], options?: { sheet?: string }): void;
     /** A setting's value now: the owner's, or its default. */
     setting(name: string): SettingValue | undefined;
     /** Hear when the owner changes the module's settings. Returns how to stop; it stops when this version goes. */

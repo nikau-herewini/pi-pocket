@@ -167,12 +167,14 @@ Calls `listener` when a module's service comes, changes (the module loads again)
 ### `settings`
 
 ```ts
-settings(fields: readonly SettingField[]): void;
+settings(fields: readonly SettingField[], options?: { sheet?: string }): void;
 ```
 
 Since 0.22.0 · Experimental
 
 Declares the module's settings, while it loads. Core keeps the owner's values in `config.json`, shows them in Menu → Extensions under the module, and checks each value against its field before it keeps it. A mistake in `fields` throws, so the module does not load and the Extensions sheet says why. See [`SettingField`](#settingfield) and [Extensions that work together](../services-settings.md#settings).
+
+Since 0.28.0, `sheet` optionally names a sheet registered by this module's browser module with `pocket.sheet`. Extensions shows **Open settings** with a **Basic settings** fallback. The basic form opens automatically when the browser module is unavailable, including in safe mode. The ID uses the normal [browser ID rules](names.md#what-a-browser-module-adds). Register `web.client` too. The sheet can open from Home or a session. Its browser code saves with [`pocket.saveSettings`](pocket.md#savesettings); core still checks owner access and every field. Without this option, the inline form stays unchanged.
 
 ### `setting`
 

@@ -107,6 +107,16 @@ web.onSettings(() => restartTimer(every()));
 - **In the browser:** `pocket.settings()` gives the values to the people whose tabs load the module, without secrets, and `pocket.onSettings(run)` hears changes.
 - **Versions:** when a new version of the module drops a setting, its value goes at the next save. A value that no longer fits a changed field gives the default until the owner sets it again.
 
+### A dedicated settings sheet
+
+Since 0.28.0, `web.settings(fields, { sheet: "settings" })` names a sheet that the browser module registers with `pocket.sheet({ id: "settings", title, component })`. The ID uses the normal browser ID rules: 1 to 64 letters, digits, `.`, `_`, `:`, or `-`, starting with a letter or digit.
+
+Extensions shows **Open settings** with a collapsed **Basic settings** fallback. This works from Home and from a session. While the browser module is loading, failed, or off in safe mode, the button is unavailable and the basic form opens automatically. The owner can always expand the basic form if a custom sheet fails while drawing. Without `sheet`, the inline form works as before. The module must also register a browser module with `web.client` and register that sheet in it.
+
+Use `pocket.settings()` to load sanitized values and `pocket.saveSettings(patch)` to save. A patch changes only its named fields; omit a secret to keep it, supply text to replace it, or use `null` to restore its default. Only the owner can save, even if the browser module is available to guests or viewers. The result has the same `{ fields, values, set }` shape as `settings()`, without secret values or secret defaults. Core keeps the existing validation and settings-change events.
+
+See the tested [server example](../examples/settings-sheet.ts) and [browser example](../examples/settings-sheet.js). Check `typeof pocket.saveSettings === "function"` before using it on an older app; omit the `sheet` option there to keep the inline form.
+
 ## Who can use what
 
 A drop-in runs inside the server with the owner's rights ([the security model](policies/security-model.md#s1-a-drop-in-runs-with-the-owners-rights)). Pi Pocket does not limit which parts of `host` a module uses: a module that wanted more could import `node:fs` and read the data folder itself. So the parts above are not permissions. The protections are that every drop-in starts off, the owner turns it on, the gallery pins and checks its files, and the owner can read every file first (**Ask Pi to review**). Write what your module reads and uses in its description: the gallery's review checks that the code matches it.

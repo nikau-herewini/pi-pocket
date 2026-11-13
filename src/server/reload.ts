@@ -189,6 +189,7 @@ export interface ExtensionInfo {
         publicPage?: boolean;
         service?: boolean;
         settings?: boolean;
+        settingsSheet?: string;
     };
     /** Why the module is not loaded, when it failed. */
     error?: string;
@@ -588,13 +589,14 @@ export class ExtensionLoader {
             const { file } = module;
             const error = this.#errors.get(file);
             const web = this.#webs.describe(file);
+            const metadata = moduleMetadata(join(module.directory, file));
 
             return {
                 file,
-                title: titleOf(file),
+                title: titleOf(file, metadata.title),
                 source: module.source,
                 ...(module.source === "drop-in" ? { path: join(module.directory, file) } : {}),
-                summary: summary(join(module.directory, file)),
+                summary: metadata.summary,
                 enabled: this.#isOn(module),
                 required: REQUIRED.has(file),
                 extensions: (this.#installed.get(file) ?? []).map(declared),
@@ -686,7 +688,11 @@ export class ExtensionLoader {
 
         // What it adds to the app counts only once it installed; a version that fails leaves the one before in place,
         // and what it set up (its cleanups) goes. The new version starts before the old one's cleanups run.
-        const { part, web } = this.#webs.stage(file, module.directory, titleOf(file));
+        const { part, web } = this.#webs.stage(
+            file,
+            module.directory,
+            titleOf(file, moduleMetadata(join(module.directory, file)).title),
+        );
         let committed = false;
 
         try {
@@ -1140,23 +1146,36 @@ function declared(extension: Extension): ExtensionInfo["extensions"][number] {
     };
 }
 
-/** A module's title in the Extensions sheet: a built-in's own, or a drop-in's file name. */
-function titleOf(file: string): string {
-    return TITLES[file] ?? file.replace(/\.ts$/, "");
+/** Display metadata never changes the module's identity or a built-in's title. */
+function titleOf(file: string, title?: string): string {
+    return TITLES[file] ?? title ?? file.replace(/\.ts$/, "");
 }
 
-/** The first sentence of a module's doc comment: its description in the Extensions sheet. */
-function summary(path: string): string {
+/** Read only the leading JSDoc, even for disabled modules. Never import a module to read its metadata. */
+function moduleMetadata(path: string): { title?: string; summary: string } {
     try {
         const comment = /^\s*\/\*\*([\s\S]*?)\*\//.exec(readFileSync(path, "utf8"))?.[1] ?? "";
-        const text = comment
-            .replace(/^\s*\* ?/gm, "")
+        const lines = comment.replace(/^\s*\* ?/gm, "").split(/\r?\n/);
+        const titles = lines.filter((line) => /^\s*@title(?:\s|$)/.test(line));
+        const title = titles[0]?.replace(/^\s*@title\s*/, "").trim();
+        const valid =
+            titles.length === 1 &&
+            title !== undefined &&
+            title.length > 0 &&
+            title.length <= 80 &&
+            !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(title);
+        const text = lines
+            .filter((line) => !/^\s*@title(?:\s|$)/.test(line))
+            .join(" ")
             .replace(/\s+/g, " ")
             .trim();
 
-        return /^(.*?[.!?])(\s|$)/.exec(text)?.[1] ?? text;
+        return {
+            ...(valid ? { title } : {}),
+            summary: /^(.*?[.!?])(\s|$)/.exec(text)?.[1] ?? text,
+        };
     } catch {
-        return "";
+        return { summary: "" };
     }
 }
 

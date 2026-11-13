@@ -105,6 +105,7 @@ These examples work. `npm test` runs them (`test/docs-examples.test.ts`):
 - [examples/read-page.ts](examples/read-page.ts): a tool that reads a public web page with `host.fetchPublic`, and fences its text with `host.text`.
 - [examples/server-status.ts](examples/server-status.ts) with [examples/server-status.js](examples/server-status.js): a page on the rail, with a route that reads the machine's load and memory, and events that keep it live.
 - [examples/quiet-note.ts](examples/quiet-note.ts) with [examples/quiet-note.js](examples/quiet-note.js): an input the transcript can fold. The model still reads the whole message.
+- [examples/settings-sheet.ts](examples/settings-sheet.ts) with [examples/settings-sheet.js](examples/settings-sheet.js): a display title and dedicated settings sheet, with owner-only saves and secret values kept on the server.
 
 ## Execution environments for workspaces
 

@@ -8,6 +8,7 @@ import { useContext, useEffect, useRef, useState } from "preact/hooks";
 import { personColor } from "../avatar.js";
 import { planAvailable } from "../commands.js";
 import { browserModuleState } from "../extension-ui.js";
+import { ExtensionSettings } from "./extension-settings.js";
 import { DiffBlock } from "../diff.js";
 import { Highlighted } from "../rich.js";
 import {
@@ -1528,6 +1529,7 @@ export function GalleryEntrySheet({
             </div>`
         }
         ${why && html`<div class=${`ext-why ${why.kind} small`}>${why.text}</div>`}
+        ${module?.web?.settingsSheet && html`<${ExtensionSettings} module=${module} />`}
         <div class="ext-actions">
             ${
                 !installed
