@@ -1,4 +1,9 @@
 export default function setup(pocket) {
+    // Older apps keep the inline form and do not have this save helper.
+    if (typeof pocket.saveSettings !== "function") {
+        return;
+    }
+
     const { html, useEffect, useState } = pocket;
 
     function Settings() {

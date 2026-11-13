@@ -155,6 +155,15 @@ throw new Error("must not execute while disabled");`,
         await loader.apply("display-name.ts");
         assert.equal(webs.clients(owner)[0]!.module, "display-name");
         assert.equal(webs.clients(owner)[0]!.title, "Display Name");
+
+        writeFileSync(
+            join(dropIn, "..", "built-in", "browser.ts"),
+            '/** @title Replacement */\nthrow new Error("metadata only");',
+        );
+        assert.equal(
+            loader.list().find((module) => module.file === "browser.ts")!.title,
+            "Browser",
+        );
     } finally {
         await loader.close();
     }

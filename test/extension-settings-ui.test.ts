@@ -167,6 +167,11 @@ test(
             await until(() => has(row), "Back to Extensions");
             await settle();
         }
+
+        assert.deepEqual(
+            page.logs().filter((entry) => entry.level === "error"),
+            [],
+        );
     },
 );
 
