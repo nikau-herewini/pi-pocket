@@ -28,6 +28,8 @@ import {
     DecisionsDoc,
     type Goal,
     GoalDoc,
+    HeldDoc,
+    type HeldMessage,
     LinkedSessionPeersDoc,
     type Loop,
     LoopDoc,
@@ -91,6 +93,7 @@ export const ROOM_DOCS = new Set(
         LoopDoc,
         WatchDoc,
         LinkedSessionPeersDoc,
+        HeldDoc,
     ].map((doc) => doc.definition.kind),
 );
 /** A typing indicator lasts this long unless the browser renews it. */
@@ -277,13 +280,15 @@ function cutQueued(text: string): string {
  */
 function reportNames(text: string): string[] | undefined {
     // Only a message that starts with a report is one: a person's own may begin "[subagent " too.
-    if (!/^\[subagent \S+ (?:answered|failed)/.test(text)) {
+    if (!/^\[subagent \S+ (?:answered|failed|stalled|stopped)/.test(text)) {
         return undefined;
     }
 
     return [
         ...new Set(
-            [...text.matchAll(/\[subagent (\S+) (?:answered|failed)/g)].map((match) => match[1]!),
+            [...text.matchAll(/\[subagent (\S+) (?:answered|failed|stalled|stopped)/g)].map(
+                (match) => match[1]!,
+            ),
         ),
     ];
 }
@@ -383,6 +388,8 @@ export class Room {
     decisions: Record<string, Decision> = {};
     plan: { on: boolean; by?: string; at?: number } = { on: false };
     schedules: Record<string, Schedule> = {};
+    /** The messages a Stop held out of the queue, in their order. */
+    held: HeldMessage[] = [];
     goal: Goal | undefined;
     loop: Loop | undefined;
     watch: PrWatch | undefined;
@@ -464,6 +471,7 @@ export class Room {
         this.schedules = {
             ...((await harness.snapshot(ScheduleDoc, this.id, context))?.items ?? {}),
         };
+        this.held = [...((await harness.snapshot(HeldDoc, this.id, context))?.items ?? [])];
         this.goal = (await harness.snapshot(GoalDoc, this.id, context))?.goal;
         this.loop = (await harness.snapshot(LoopDoc, this.id, context))?.loop;
         this.watch = (await harness.snapshot(WatchDoc, this.id, context))?.watch;
@@ -537,6 +545,8 @@ export class Room {
             this.plan = { on: false, ...((value as Room["plan"] | null) ?? {}) };
         } else if (kind === ScheduleDoc.definition.kind) {
             this.schedules = { ...((value?.items as Record<string, Schedule>) ?? {}) };
+        } else if (kind === HeldDoc.definition.kind) {
+            this.held = [...((value?.items as HeldMessage[] | undefined) ?? [])];
         } else if (kind === GoalDoc.definition.kind) {
             this.goal = (value?.goal as Goal | undefined) ?? undefined;
         } else if (kind === LoopDoc.definition.kind) {
@@ -853,14 +863,43 @@ export class Room {
             plan: this.plan,
             schedules: Object.values(this.schedules)
                 .sort((a, b) => a.next - b.next)
-                .map(({ id, text, next, every, by, runs }) => ({
-                    id,
-                    text,
-                    next,
-                    ...(every === undefined ? {} : { repeat: describeRepeat(every) }),
-                    ...(by === undefined ? {} : { by }),
-                    runs,
-                })),
+                // `every` and `zone` as data too, for the Schedules sheet's editor, and `version`, which each edit
+                // changes (a pause does not), so a save made from an older copy is refused instead of undoing that edit.
+                .map(
+                    ({
+                        id,
+                        text,
+                        next,
+                        every,
+                        zone,
+                        by,
+                        runs,
+                        createdAt,
+                        revision,
+                        paused,
+                        skipped,
+                        skippedAt,
+                    }) => ({
+                        id,
+                        version: String(revision ?? 0),
+                        text,
+                        next,
+                        ...(every === undefined ? {} : { repeat: describeRepeat(every), every }),
+                        zone,
+                        ...(by === undefined ? {} : { by }),
+                        runs,
+                        ...(skipped === undefined ? {} : { skipped, skippedAt }),
+                        createdAt,
+                        ...(paused === undefined ? {} : { paused: paused.at, pausedBy: paused.by }),
+                    }),
+                ),
+            // What a Stop held: each message's start and who wrote it, as the queue shows them.
+            held: this.held.map((item) => ({
+                key: item.key,
+                mode: item.mode,
+                ...(item.by === undefined ? {} : { by: item.by }),
+                text: cutQueued(queuedText(item.content)),
+            })),
             // The branch is read from the repository each time, so one Pi or a person switched to shows on the next update.
             branch: this.#readHead(),
             goal:
