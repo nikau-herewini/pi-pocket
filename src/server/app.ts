@@ -99,6 +99,7 @@ import {
 import { type GuardStatus, LancetGuard } from "./lancet.ts";
 import { takeLock } from "./lock.ts";
 import { Memory } from "./memory.ts";
+import { publishModelPreview } from "./model-previews.ts";
 import { isThinkingLevel, modelInfo, modelList, resolveModel, THINKING_LEVELS } from "./models.ts";
 import { pocketPackage, pocketVersion } from "./versions.ts";
 import { serverBuild } from "./build.ts";
@@ -860,6 +861,7 @@ export class PocketApp {
             agentDir: getAgentDir(),
             dataDir: this.dataDir,
             pocketVersion: pocketVersion(),
+            publishModelPreview: (id, bytes) => publishModelPreview(this.dataDir, id, bytes),
             modelInfo: (spec) => modelInfo(this.models, spec),
             skillPaths: () => {
                 try {

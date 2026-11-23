@@ -27,6 +27,19 @@ export const VENDOR: Record<string, string> = {
     // Loaded on demand by the diagrams extension (`extensions/diagrams/`), not by the app.
     "pele.mjs": vendor("pele", "dist", "pele.js"),
     "katex.mjs": vendor("katex", "dist", "katex.mjs"),
+    // Loaded only when a model preview opens. Keep the GLTFLoader's imports local as well.
+    "three.module.js": vendor("three", "build", "three.module.js"),
+    "three.core.js": vendor("three", "build", "three.core.js"),
+    "gltf-loader.js": vendor("three", "examples", "jsm", "loaders", "GLTFLoader.js"),
+    "orbit-controls.js": vendor("three", "examples", "jsm", "controls", "OrbitControls.js"),
+    "buffer-geometry-utils.js": vendor(
+        "three",
+        "examples",
+        "jsm",
+        "utils",
+        "BufferGeometryUtils.js",
+    ),
+    "skeleton-utils.js": vendor("three", "examples", "jsm", "utils", "SkeletonUtils.js"),
 };
 
 /**

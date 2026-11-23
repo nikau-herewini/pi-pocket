@@ -134,6 +134,12 @@ export interface Host {
      */
     readonly dataDir: string;
     /**
+     * Publish a self-contained GLB for readers of this conversation. Returns its content ID.
+     * @since 0.29.0
+     * @experimental
+     */
+    publishModelPreview?(conversationId: ConversationId, model: Uint8Array): Promise<string>;
+    /**
      * The running server's Pi Pocket package version, not the extension API level.
      * @since 0.16.0
      */

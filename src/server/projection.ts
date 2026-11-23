@@ -443,11 +443,16 @@ function projectDetails(details: unknown, full: boolean): unknown {
     // sheet finds the script's writes in it.
     if (Array.isArray(record.calls)) {
         return {
-            calls: (record.calls as Record<string, unknown>[]).map(({ name, status, path }) => ({
-                name,
-                status,
-                ...(typeof path === "string" ? { path } : {}),
-            })),
+            calls: (record.calls as Record<string, unknown>[]).map(
+                ({ name, status, path, modelPreview }) => ({
+                    name,
+                    status,
+                    ...(typeof path === "string" ? { path } : {}),
+                    ...(typeof modelPreview === "string" && /^[a-f0-9]{64}$/.test(modelPreview)
+                        ? { modelPreview }
+                        : {}),
+                }),
+            ),
         };
     }
 

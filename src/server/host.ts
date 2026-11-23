@@ -472,6 +472,8 @@ export interface PocketHost {
     readonly approvals: Approvals;
     readonly agentDir: string;
     readonly dataDir: string;
+    /** Publish a self-contained GLB for readers of this conversation. Returns its content ID. */
+    publishModelPreview?(conversationId: ConversationId, model: Uint8Array): Promise<string>;
     /** The running server's Pi Pocket package version, not the extension API level. */
     readonly pocketVersion: string;
     /** Local metadata for an exact provider/modelId; no sign-in check or network request. */
