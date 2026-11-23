@@ -40,6 +40,16 @@ Since 0.1.0 · Stable
 
 Pi's own folder, usually `~/.pi/agent`. Pi keeps its sign-ins, models, settings, skills, and prompt templates there.
 
+### `publishModelPreview`
+
+```typescript
+publishModelPreview?(conversationId: ConversationId, model: Uint8Array): Promise<string>;
+```
+
+Since 0.29.0 · Experimental
+
+Stores a self-contained GLB 2 model (up to 64 MB) for readers of one conversation. Pass the current tool call’s conversation ID. Put the returned ID in the successful tool result as `details.modelPreview` to add a **View in 3D** action. Check that this optional capability exists before calling it on older builds.
+
 ### `cwdOf`
 
 ```ts

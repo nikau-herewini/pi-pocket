@@ -68,6 +68,7 @@ type CallRecord = {
     status: "running" | "ok" | "error" | "cancelled";
     path?: string;
     durationMs?: number;
+    modelPreview?: string;
     error?: string;
 };
 type CodemodeDetails = { calls: CallRecord[]; fullOutputPath?: string };
@@ -407,6 +408,13 @@ export default function createCodemode(host: PocketHost, web?: ExtensionWeb) {
                                 images.push(part);
                             }
                         }
+                    }
+
+                    const preview = (result.details as { modelPreview?: unknown } | undefined)
+                        ?.modelPreview;
+
+                    if (typeof preview === "string" && /^[a-f0-9]{64}$/.test(preview)) {
+                        record.modelPreview = preview;
                     }
 
                     record.status = "ok";

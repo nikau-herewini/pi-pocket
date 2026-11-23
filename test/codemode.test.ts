@@ -105,6 +105,35 @@ test("a script calls tools, gets their text, and returns a value", async () => {
     assert.match(result.text, /\["echo:hi","ran ls ✓"\]/);
 });
 
+test("only successful nested tools can attach model preview IDs", async () => {
+    const modelPreview = "a".repeat(64);
+    const model = defineTool({
+        name: "make_model",
+        description: "Return a test model preview",
+        parameters: obj({ outcome: str() }),
+        execute: async ({ outcome }) => ({
+            output: [{ type: "text", text: "done" }],
+            details: { modelPreview: outcome === "invalid" ? "invalid" : modelPreview },
+            isError: outcome === "error",
+        }),
+    });
+    const result = await run(
+        fakeApi([model]),
+        `await tools.make_model({ outcome: "ok" }); await tools.make_model({ outcome: "invalid" }); try { await tools.make_model({ outcome: "error" }); } catch {}`,
+    );
+    const { calls } = result.details as { calls: { status: string; modelPreview?: string }[] };
+
+    assert.deepEqual(
+        calls.map((call) => [call.status, call.modelPreview]),
+        [
+            ["ok", modelPreview],
+            ["ok", undefined],
+            ["error", undefined],
+        ],
+    );
+    assert.ok(!result.text.includes(modelPreview));
+});
+
 test("nested calls are checked like direct ones: hooks that rewrite or block, and hooks that fail", async () => {
     const policy = defineExtension({
         name: "policy",

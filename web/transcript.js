@@ -19,6 +19,8 @@ import { describeCall, describersRevision } from "./calls.js";
 import { DiffBlock } from "./diff.js";
 import { LinkedSessions } from "./linked-sessions.js";
 import { markdownRevision } from "./markdown-ext.js";
+import { ModelPreviewAction } from "./model-preview.js";
+import { modelPreviewIds } from "./model-preview-data.js";
 import { personStorage } from "./person-storage.js";
 import { quoteParts } from "./quote-text.js";
 import { fromServer } from "./seen.js";
@@ -1474,7 +1476,9 @@ function ToolStep({
         call.name === "ask" && !result?.isError && Array.isArray(details?.answers)
             ? details.answers
             : null;
-    const extras = imagesUnder || artifact || watch || lesson || answers;
+    const previews =
+        conversationId != null ? modelPreviewIds(call.name, full?.result ?? result) : [];
+    const extras = imagesUnder || artifact || watch || lesson || answers || previews.length > 0;
 
     return html`<div
         class=${`step ${open ? "open" : ""} ${settled ? "settled" : ""}`}
@@ -1530,6 +1534,15 @@ function ToolStep({
             extras &&
             html`<div class="step-extras" data-part="step-detail">
                 ${answers && html`<${AskAnswers} answers=${answers} />`}
+                ${previews.map(
+                    (id, index) => html`<${ModelPreviewAction}
+                    key=${`${conversationId}:${id}`}
+                    conversationId=${conversationId}
+                    id=${id}
+                    index=${index}
+                    count=${previews.length}
+                />`,
+                )}
                 ${
                     lesson &&
                     html`<${LessonCall} lessonId=${lesson} conversationId=${conversationId} />`

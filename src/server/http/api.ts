@@ -22,6 +22,7 @@ import {
 import type { User } from "../config.ts";
 import { MAX_AVATAR, readAvatar } from "../avatars.ts";
 import { HttpError } from "../errors.ts";
+import { readModelPreview } from "../model-previews.ts";
 import { desktopTheme, wallpaperFile } from "../omarchy.ts";
 import { runningBoard, runningNow } from "../running.ts";
 import { serveImage } from "./assets.ts";
@@ -37,6 +38,7 @@ import {
     json,
     readBody,
     readJson,
+    send,
 } from "./io.ts";
 import { pushRoutes } from "./push-routes.ts";
 
@@ -551,6 +553,33 @@ export function createApi(options: HttpOptions, auth: Auth) {
 
         if (first === "sessions" && second === undefined && method === "GET") {
             return json(response, 200, app.sessions(user));
+        }
+
+        if (
+            first === "model-previews" &&
+            second &&
+            third &&
+            fourth === undefined &&
+            method === "GET"
+        ) {
+            if (request.headers["x-pocket"] !== "1") {
+                throw new HttpError(403, "Missing X-Pocket header");
+            }
+
+            const id = conversationId(second);
+
+            app.requireSee(user, id);
+            const model = await readModelPreview(app.dataDir, id, third);
+
+            if (model === undefined) {
+                throw new HttpError(404, "Model preview not found");
+            }
+
+            return send(response, 200, model, "model/gltf-binary", {
+                "content-disposition": 'attachment; filename="model.glb"',
+                "cross-origin-resource-policy": "same-origin",
+                "x-content-type-options": "nosniff",
+            });
         }
 
         if (first === "artifacts" && second === undefined && method === "GET") {
