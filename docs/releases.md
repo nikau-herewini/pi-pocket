@@ -7,7 +7,7 @@ This fork uses a rolling, commit-based maintenance model. It does not maintain i
 - `main` contains the reviewed fork changes. Every change must go through a pull request to `main`, including upstream integrations.
 - Use the full Git commit SHA to identify source code. The [commit history](https://github.com/nikau-herewini/pi-pocket/commits/main/) and merged pull requests are the change log.
 - Versions in `package.json`, `package-lock.json`, API documentation, and the app are inherited upstream metadata. They are not fork release identifiers. Do not bump them for fork changes or remove versions required by tooling.
-- Upstream integrations can change that metadata without creating a fork release. The pristine `upstream` branch mirrors upstream source without syncing Git tags ([upstream integration](../.github/UPSTREAM_SYNC.md)).
+- Upstream integrations can change that metadata without creating a fork release. The `upstream` branch tracks upstream source without `.github` or Git tags ([upstream integration](../.github/UPSTREAM_SYNC.md)).
 
 ## Publishing
 
