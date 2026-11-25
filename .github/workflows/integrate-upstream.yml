@@ -58,7 +58,7 @@ jobs:
                       core.setOutput('head', head);
                       const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
                       const body = [
-                          'Integrate the original project changes from our `upstream` mirror into `main`.',
+                          'Integrate upstream source changes into `main`, without importing `.github`.',
                           '',
                           `Validation run: ${run}`,
                           `Base SHA: \`${base}\``,
@@ -68,7 +68,7 @@ jobs:
                           'Before merging, confirm that the linked validation succeeds and both SHAs still match the branches.',
                           'If either branch changes, run **Propose upstream integration** again on `main`.',
                           '',
-                          '**Use Create a merge commit. Do not squash or rebase:** preserve upstream ancestry.',
+                          '**Use Create a merge commit. Do not squash or rebase:** preserve the filtered sync branch history.',
                           'This workflow does not merge or approve the PR.'
                       ].join('\n');
                       const { data: existing } = await github.rest.pulls.list({
@@ -106,6 +106,7 @@ jobs:
                   git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
                   git fetch --no-tags --unshallow origin "$BASE_SHA" "$HEAD_SHA"
                   git merge --no-edit --no-ff "$HEAD_SHA"
+                  git diff --exit-code "$BASE_SHA" HEAD -- .github
             - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 24

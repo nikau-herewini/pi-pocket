@@ -1,4 +1,4 @@
-# This file lives on our main branch, not on the untouched upstream mirror.
+# This file lives on main. The upstream branch excludes all of .github.
 name: Sync upstream mirror
 
 on:
@@ -25,22 +25,39 @@ jobs:
                   fetch-depth: 1
                   fetch-tags: false
                   persist-credentials: false
-            - name: Fast-forward the mirror without tags or force
+            - name: Sync upstream source without .github, tags, or force
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   set -euo pipefail
                   git config user.name 'github-actions[bot]'
                   git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-                  # Full-depth checkout fetches tags even with fetch-tags: false.
-                  git fetch --no-tags --unshallow origin refs/heads/upstream
+                  previous="$(git log -1 --format='%(trailers:key=Upstream-Source,valueonly)')"
+                  if [[ ! "$previous" =~ ^[0-9a-f]{40}$ || -n "$(git ls-tree HEAD -- .github)" ]]; then
+                      echo '::error::The upstream branch is missing its filtered sync baseline.'
+                      exit 1
+                  fi
                   git fetch --no-tags https://github.com/TannerMidd/pi-pocket.git refs/heads/main
                   target="$(git rev-parse FETCH_HEAD)"
-                  # Also reject an upstream rewind, which merge --ff-only alone accepts.
-                  git merge-base --is-ancestor HEAD "$target"
-                  git merge --ff-only "$target"
-                  test "$(git rev-parse HEAD)" = "$target"
+                  if ! git merge-base --is-ancestor "$previous" "$target"; then
+                      echo "::error::Upstream source $target does not descend from $previous."
+                      exit 1
+                  fi
+
+                  # Read the source tree without checking it out. Never push its commits.
+                  index_dir="$(mktemp -d)"
+                  trap 'rm -r -- "$index_dir"' EXIT
+                  export GIT_INDEX_FILE="$index_dir/index"
+                  git read-tree "$target"
+                  git rm -rf --cached --ignore-unmatch -- .github
+                  tree="$(git write-tree)"
+                  if [[ "$tree" == "$(git rev-parse HEAD^{tree})" ]]; then
+                      echo "No source changes outside .github through $target." >> "$GITHUB_STEP_SUMMARY"
+                      exit 0
+                  fi
+                  commit="$(git commit-tree "$tree" -p HEAD \
+                      -m 'Sync upstream source without .github' -m "Upstream-Source: $target")"
                   git -c credential.helper= \
                       -c 'credential.helper=!gh auth git-credential' \
-                      push origin HEAD:refs/heads/upstream
-                  echo "Mirror synced to $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+                      push origin "$commit:refs/heads/upstream"
+                  echo "Synced source $target to upstream as $commit." >> "$GITHUB_STEP_SUMMARY"
