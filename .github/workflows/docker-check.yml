@@ -72,6 +72,14 @@ jobs:
                   start_and_wait
                   docker exec --user 1000:1000 pi-pocket-smoke fj version
                   docker exec --user 1000:1000 pi-pocket-smoke fj pr --help
+                  # Check fallback glyphs for Chinese, Japanese, and Korean.
+                  for codepoint in 623f 3042 ac00; do
+                      fonts="$(docker exec --user 1000:1000 pi-pocket-smoke fc-list ":charset=$codepoint" --format '%{family}\n')"
+                      if [ -z "$fonts" ]; then
+                          echo "No installed font covers U+$codepoint"
+                          exit 1
+                      fi
+                  done
                   docker exec pi-pocket-smoke node -e \
                       "require('node:fs').writeFileSync('/data/docker-smoke-marker', 'persisted')"
                   timeout 30s docker exec pi-pocket-smoke chromium \
