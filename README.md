@@ -13,7 +13,9 @@ Deploy with Docker on your own machine. Use it from your phone or any browser. N
 
 [Website](https://nikau-herewini.github.io/pi-pocket/) · [Quick start](#quick-start) · [Feature tour](docs/features.md) · [Docs](https://nikau-herewini.github.io/pi-pocket/docs/)
 
-<img src="docs/showcase-0.12.1.png" alt="Pi Pocket in the Tokyo Night theme, on a desktop and a phone. On the desktop, the session list beside a conversation where Pi has fixed a sign-in redirect loop, its edits and a passing run of 48 tests folded into a timeline. On the phone, the same session after a teammate, Alex, asks for the push: Lancet Guard waits for approval before git push." width="100%">
+[Quick start](#quick-start) · [Highlights](#highlights) · [Feature tour](docs/features.md) · [Website](https://tannermidd.github.io/pi-pocket/) · [Docs](https://tannermidd.github.io/pi-pocket/docs/)
+
+<img src="https://tannermidd.github.io/pi-pocket/shots/desktop.webp" alt="Desktop: review a test diff while another session waits for approval to push." width="74%"> <img src="https://tannermidd.github.io/pi-pocket/shots/pip-phone.webp" alt="Phone: check in on other sessions with PiP." width="21%">
 
 </div>
 
@@ -26,7 +28,7 @@ Deploy with Docker on your own machine. Use it from your phone or any browser. N
 - **Your models.** Pi's own providers, sign-ins, skills, and prompt templates, with the model chosen per session.
 - **Extensible.** Add mounted extensions and themes without rebuilding the image. Source editing is available for development and testing.
 
-The [feature tour](docs/features.md) covers everything else, from plan mode and peek tiles to the built-in browser.
+**In the [0.31 beta](https://github.com/TannerMidd/pi-pocket/releases/tag/v0.31.0-beta.4): optional classification.** Relay triage can screen messages from unmarked senders and replies to them. Run outcomes can label a subagent’s or linked session’s report without replacing its answer. Both send text to the classifier provider you choose; with no classifier selected, neither makes a call. Jev Hub shows classifier activity. These features aren’t in the stable install below.
 
 ## Fork maintenance
 
