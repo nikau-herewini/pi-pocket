@@ -450,16 +450,21 @@ test("a file grown after stat is rejected after at most one excess byte", async 
     const read = prototype.read as (...args: unknown[]) => Promise<{ bytesRead: number }>;
     let targetFd = -1;
     let bytesRead = 0;
-    const checkedStat = mock.method(prototype, "stat", async function (this: FileHandle) {
-        const info = await stat.call(this);
+    const checkedStat = mock.method(
+        prototype,
+        "stat",
+        async function (this: FileHandle, ...args: unknown[]) {
+            // Preserve the bigint identity check in openNoFollow; grow the file during the later size check.
+            const info: Stats = await Reflect.apply(stat, this, args);
 
-        if (info.ino === identity.ino && info.dev === identity.dev && this.fd !== probe.fd) {
-            targetFd = this.fd;
-            ftruncateSync(descriptor, MAX_ASSET_BYTES + 100);
-        }
+            if (info.ino === identity.ino && info.dev === identity.dev && this.fd !== probe.fd) {
+                targetFd = this.fd;
+                ftruncateSync(descriptor, MAX_ASSET_BYTES + 100);
+            }
 
-        return info;
-    });
+            return info;
+        },
+    );
     const checkedRead = mock.method(
         prototype,
         "read",
